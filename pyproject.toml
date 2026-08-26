@@ -1,0 +1,44 @@
+[project]
+name = "pitchcast"
+version = "0.1.0"
+description = "Probabilistic football match forecasting, benchmarked against the betting market"
+readme = "README.md"
+authors = [
+    { name = "Aryan", email = "aryanmalhotra796@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "lightgbm>=4.7.0",
+    "matplotlib>=3.11.1",
+    "numpy>=2.5.2",
+    "pandas>=3.0.5",
+    "pyarrow>=25.0.1",
+    "scikit-learn>=1.9.0",
+    "scipy>=1.18.1",
+    "typer>=0.27.1",
+    "xgboost>=3.4.1",
+]
+
+[project.scripts]
+pitchcast = "pitchcast.cli:app"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["integration: requires the downloaded SQLite database"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+
+[build-system]
+requires = ["uv_build>=0.9.30,<0.10.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.16.4",
+]

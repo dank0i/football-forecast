@@ -1,0 +1,209 @@
+"""Walk-forward evaluation, season by season.
+
+This replaces the single biggest methodological problem in the original
+analysis: ``train_test_split(X, y, test_size=0.2, random_state=42)`` on eight
+seasons of chronological data. A random split trains on 2016 matches and tests
+on 2010 ones, so the model sees the future in three separate ways. It knows how
+a team's season ended before predicting its September fixtures; it has met the
+specific opponents in the test match; and any imputation computed over the full
+frame carries test-set statistics into training. That inflates every score, and
+the inflation is invisible because the held-out set is contaminated in the same
+direction.
+
+The protocol here is the one a forecaster would actually face. For each test
+season, train on every match played before it and predict that season cold.
+Nothing about the test season, including its own match results, its imputation
+statistics, or its Dixon-Coles team strengths, is available at fit time.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from itertools import pairwise
+
+import numpy as np
+import pandas as pd
+
+from .config import BURN_IN_SEASONS, SEASONS
+from .evaluation.metrics import evaluate
+from .features.build import select_features
+from .models import baselines
+from .models.dixon_coles import fit_dixon_coles
+from .models.gbm import GBMForecaster
+
+
+@dataclass
+class FoldResult:
+    season: str
+    n_train: int
+    n_test: int
+    predictions: pd.DataFrame
+
+
+def season_folds(seasons: tuple[str, ...] = SEASONS, burn_in: int = BURN_IN_SEASONS):
+    """Yield (train_seasons, test_season) with an expanding training window."""
+    for i in range(burn_in, len(seasons)):
+        yield seasons[:i], seasons[i]
+
+
+def dixon_coles_predictions(
+    frame: pd.DataFrame, test_index: pd.Index, xi: float = 0.0018, refit_days: int = 30
+) -> pd.DataFrame:
+    """Dixon-Coles forecasts for a test season, refit periodically per league.
+
+    Refitting matters: team strengths estimated in August are stale by April.
+    The model is refit every ``refit_days`` using all matches up to that point,
+    so a fixture in March is predicted by a model that has seen the season's
+    first seven months but not the fixture itself.
+    """
+    rows = []
+    test = frame.loc[test_index]
+    for league_id, league_test in test.groupby("league_id", sort=False):
+        league_all = frame[frame["league_id"] == league_id]
+        checkpoints = pd.date_range(
+            league_test["date"].min(),
+            league_test["date"].max() + pd.Timedelta(days=refit_days),
+            freq=f"{refit_days}D",
+        )
+        fit = None
+        for start, end in pairwise(checkpoints):
+            window = league_test[(league_test["date"] >= start) & (league_test["date"] < end)]
+            if window.empty:
+                continue
+            try:
+                fit = fit_dixon_coles(league_all, as_of=start, xi=xi)
+            except ValueError:
+                continue
+            for row in window.itertuples():
+                probs = fit.outcome_probabilities(row.home_team_api_id, row.away_team_api_id)
+                lam, mu = fit.rates(row.home_team_api_id, row.away_team_api_id)
+                derived = fit.derived_markets(row.home_team_api_id, row.away_team_api_id)
+                rows.append(
+                    {
+                        "match_index": row.match_index,
+                        "dc_home": probs[0],
+                        "dc_draw": probs[1],
+                        "dc_away": probs[2],
+                        "dc_lambda": lam,
+                        "dc_mu": mu,
+                        "dc_expected_goals": lam + mu,
+                        "dc_supremacy": lam - mu,
+                        **{f"dc_{k}": v for k, v in derived.items()},
+                    }
+                )
+    return pd.DataFrame(rows)
+
+
+def build_dixon_coles_cache(frame: pd.DataFrame, xi: float = 0.0018) -> pd.DataFrame:
+    """Precompute Dixon-Coles forecasts for every match outside the first season.
+
+    The fits depend only on match dates and scorelines, never on the feature
+    blocks being ablated, so they are computed once and reused. Doing this
+    inside every ablation run would refit the same ~600 models each time and
+    dominate the runtime.
+    """
+    scored = frame[frame["season"] != SEASONS[0]]
+    return dixon_coles_predictions(frame, scored.index, xi=xi)
+
+
+def run_backtest(
+    frame: pd.DataFrame,
+    blocks: tuple[str, ...] = ("elo", "form", "squad"),
+    use_dixon_coles: bool = True,
+    xi: float = 0.0018,
+    seed: int = 42,
+    dc_cache: pd.DataFrame | None = None,
+) -> tuple[pd.DataFrame, list[FoldResult]]:
+    """Train and score one model configuration across every test season."""
+    folds: list[FoldResult] = []
+    if use_dixon_coles and dc_cache is None:
+        dc_cache = build_dixon_coles_cache(frame, xi=xi)
+
+    for train_seasons, test_season in season_folds():
+        train_mask = frame["season"].isin(train_seasons)
+        test_mask = frame["season"] == test_season
+        train, test = frame[train_mask].copy(), frame[test_mask].copy()
+
+        features = select_features(frame, blocks)
+        if use_dixon_coles:
+            # Every Dixon-Coles forecast in the cache, for training and test
+            # seasons alike, came from a model fit only on matches that preceded
+            # it, so the GBM learns from the same kind of input it meets at test
+            # time and no future scoreline reaches either side of the split.
+            assert dc_cache is not None
+            dc_cols = [c for c in dc_cache.columns if c != "match_index"]
+            train = train.merge(dc_cache, on="match_index", how="left")
+            test = test.merge(dc_cache, on="match_index", how="left")
+            features = features + dc_cols
+
+        # The last 15% of the training window, chronologically, is the
+        # early-stopping set. Sampling it at random would leak across the
+        # boundary the whole design exists to protect.
+        cutoff = int(len(train) * 0.85)
+        fit_part, valid_part = train.iloc[:cutoff], train.iloc[cutoff:]
+
+        params = dict(GBMForecaster.__dataclass_fields__["params"].default_factory())
+        params["seed"] = seed
+        model = GBMForecaster(features=features, params=params).fit(fit_part, valid_part)
+
+        probs = model.predict(test)
+        preds = pd.DataFrame(
+            {
+                "match_index": test["match_index"].to_numpy(),
+                "season": test_season,
+                "league": test["league"].to_numpy(),
+                "date": test["date"].to_numpy(),
+                "result": test["result"].to_numpy(),
+                "model_home": probs[:, 0],
+                "model_draw": probs[:, 1],
+                "model_away": probs[:, 2],
+            }
+        )
+        market_probs = baselines.market_baseline(test)
+        preds[["market_home", "market_draw", "market_away"]] = market_probs
+        prior_probs = baselines.prior_baseline(train, test)
+        preds[["prior_home", "prior_draw", "prior_away"]] = prior_probs
+        if use_dixon_coles:
+            preds[["dc_home", "dc_draw", "dc_away"]] = test[["dc_home", "dc_draw", "dc_away"]].to_numpy()
+
+        folds.append(FoldResult(test_season, len(train), len(test), preds))
+
+    predictions = pd.concat([f.predictions for f in folds], ignore_index=True)
+    return predictions, folds
+
+
+def summarise(
+    predictions: pd.DataFrame,
+    sources: tuple[str, ...] = ("model", "market", "prior", "dc"),
+) -> pd.DataFrame:
+    """Metric table for every forecast source present in ``predictions``.
+
+    Restricted to matches the market priced, so every source is scored on
+    exactly the same fixtures. Comparing a model on 26k matches against a
+    bookmaker on the 22.6k it quoted would flatter whichever had the easier set.
+    """
+    actual = predictions["result"].to_numpy()
+    priced = np.isfinite(predictions[["market_home", "market_draw", "market_away"]].to_numpy()).all(axis=1)
+    rows = []
+    for source in sources:
+        cols = [f"{source}_{o}" for o in ("home", "draw", "away")]
+        if not all(c in predictions.columns for c in cols):
+            continue
+        probs = predictions[cols].to_numpy(dtype=float)
+        metrics = evaluate(probs[priced], actual[priced])
+        rows.append({"source": source, **metrics})
+    return pd.DataFrame(rows)
+
+
+def summarise_by_season(predictions: pd.DataFrame, source: str = "model") -> pd.DataFrame:
+    cols = [f"{source}_{o}" for o in ("home", "draw", "away")]
+    rows = []
+    for season, group in predictions.groupby("season", sort=True):
+        priced = np.isfinite(group[["market_home", "market_draw", "market_away"]].to_numpy()).all(axis=1)
+        rows.append(
+            {
+                "season": season,
+                **evaluate(group[cols].to_numpy(dtype=float)[priced], group["result"].to_numpy()[priced]),
+            }
+        )
+    return pd.DataFrame(rows)
