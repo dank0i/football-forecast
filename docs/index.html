@@ -186,7 +186,7 @@ footer{border-top:2px solid var(--ink);padding:2.2rem 0 4rem;font-family:var(--d
         </div>
       </div>
 
-      <p class="coupon-foot">Four fixtures from the held-out seasons, including one both forecasts got wrong. Across all 16,888, the two differ by a median of <b>5 percentage points</b>, and the model captures <b>90%</b> of the bookmaker's edge over base rates.</p>
+      <p class="coupon-foot">Four fixtures from the held-out seasons, including one both forecasts got wrong. Across all 16,888, the two differ by a median of <b>5 percentage points</b>, and the model captures <b>92%</b> of the bookmaker's edge over base rates.</p>
     </div>
 
     <div class="cta">
@@ -210,9 +210,9 @@ footer{border-top:2px solid var(--ink);padding:2.2rem 0 4rem;font-family:var(--d
     <thead><tr><th>Task</th><th>Baseline</th><th>This model</th><th>Bookmaker</th></tr></thead>
     <tbody>
       <tr class="hi"><td>Three-way, home, draw or away</td><td>45.5%</td><td>52.3%</td><td>53.0%</td></tr>
-      <tr><td>Home win versus anything else</td><td>54.5%</td><td>64.4%</td><td>65.3%</td></tr>
-      <tr><td>Decided matches, draws removed</td><td>61.0%</td><td>70.1%</td><td>70.9%</td></tr>
-      <tr><td>Matches the model calls at over 80%, 4% of fixtures</td><td>, </td><td>86.3%</td><td>, </td></tr>
+      <tr><td>Home win versus anything else</td><td>54.5%</td><td>64.2%</td><td>65.3%</td></tr>
+      <tr><td>Decided matches, draws removed</td><td>61.0%</td><td>70.0%</td><td>70.9%</td></tr>
+      <tr><td>Matches the model calls at over 80%, 4% of fixtures</td><td>-</td><td>85.6%</td><td>-</td></tr>
     </tbody>
   </table>
   </div>
@@ -241,7 +241,9 @@ footer{border-top:2px solid var(--ink);padding:2.2rem 0 4rem;font-family:var(--d
       <tr><td>Dixon-Coles goal model</td><td>0.2032</td><td>51.5%</td></tr>
       <tr><td>Elo ratings</td><td>0.2021</td><td>51.7%</td></tr>
       <tr class="hi"><td>FIFA ratings of the starting eleven</td><td>0.2011</td><td>52.3%</td></tr>
-      <tr><td>Everything, no betting data</td><td>0.1996</td><td>52.4%</td></tr>
+      <tr><td>Gradient boosting on all features</td><td>0.1996</td><td>52.4%</td></tr>
+      <tr><td>Neural net with learned team embeddings</td><td>0.1994</td><td>52.2%</td></tr>
+      <tr class="hi"><td>The two averaged</td><td>0.1991</td><td>52.3%</td></tr>
       <tr><td>Bookmaker odds, run through a model</td><td>0.1981</td><td>52.7%</td></tr>
       <tr class="ref"><td>Bookmaker odds, used directly</td><td>0.1967</td><td>53.0%</td></tr>
     </tbody>
@@ -261,10 +263,34 @@ footer{border-top:2px solid var(--ink);padding:2.2rem 0 4rem;font-family:var(--d
   </figure>
 </section>
 
+<section>
+  <p class="tag">Two model classes</p>
+  <h2>Boosting ranks better, embeddings calibrate better</h2>
+  <p>Elo compresses a club to one number and Dixon-Coles to two, so neither can express a matchup: the idea that one side is awkward for another beyond what their ratings predict. A neural network with a learned vector per club can, since it sees both vectors, their difference, and their elementwise product.</p>
+
+  <div class="tbl">
+  <table>
+    <thead><tr><th>Model</th><th>RPS</th><th>Accuracy</th><th>Calibration error</th></tr></thead>
+    <tbody>
+      <tr><td>Gradient boosting</td><td>0.1999</td><td>52.3%</td><td>0.0100</td></tr>
+      <tr><td>Team-embedding network</td><td>0.1995</td><td>52.2%</td><td>0.0047</td></tr>
+      <tr class="hi"><td>The two averaged</td><td>0.1991</td><td>52.3%</td><td>0.0063</td></tr>
+    </tbody>
+    <caption>Mean over five random seeds. The gradient boosting and embedding rows differ by more than four times their seed-to-seed spread.</caption>
+  </table>
+  </div>
+
+  <p>The network is worse at picking winners and twice as well calibrated. Averaging the two at a fixed equal weight keeps both properties and gives the best model here. The weight is fixed rather than tuned on purpose: sweeping it found an optimum between 0.4 and 0.75, but choosing from that range would be fitting a hyperparameter to the held-out seasons.</p>
+
+  <div class="note">
+    <p>The embeddings do <b>not</b> encode club strength. Their magnitude correlates with home win rate at r&nbsp;=&nbsp;0.01, and the largest belong to mid-table sides like Cagliari and Middlesbrough rather than to Barcelona. That is the expected result once Elo, squad ratings and Dixon-Coles are already supplying strength as features: what is left for an embedding to learn is club-specific residual structure, not a rating it has been handed three times over.</p>
+  </div>
+</section>
+
 <section id="ceiling">
   <p class="tag">The ceiling</p>
   <h2>Why the model stops improving</h2>
-  <p>Four separate attempts to close the remaining gap produced no improvement.</p>
+  <p>Before the embedding network, four separate attempts to close the gap produced no improvement.</p>
 
   <div class="tbl">
   <table>

@@ -114,6 +114,26 @@ def backtest(
 
 
 @app.command()
+def ensemble() -> None:
+    """Backtest the boosted model blended with the embedding network."""
+    from .backtest import run_ensemble_backtest, summarise, summarise_by_season
+
+    frame = _load_features()
+    cache = pd.read_parquet(DC_CACHE) if DC_CACHE.exists() else None
+    predictions = run_ensemble_backtest(frame, dc_cache=cache)
+    predictions.to_parquet(DATA_PROCESSED / "predictions.parquet", index=False)
+
+    typer.echo(
+        "\n"
+        + summarise(predictions, sources=("model", "gbm", "net", "market", "prior"))
+        .round(4)
+        .to_string(index=False)
+    )
+    typer.echo("\nBy season:")
+    typer.echo(summarise_by_season(predictions).round(4).to_string(index=False))
+
+
+@app.command()
 def ablate() -> None:
     """Score every feature-block combination and write reports/ablation.csv."""
     from .backtest import run_backtest, summarise

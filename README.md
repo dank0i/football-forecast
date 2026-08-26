@@ -8,16 +8,16 @@ Predicts home/draw/away probabilities for 25,979 matches across 11 European
 leagues (2008-2016), evaluated with strictly chronological walk-forward
 validation and scored with proper scoring rules rather than accuracy.
 
-**Using no betting data at all, it recovers 90% of the bookmaker's edge over base
+**Using no betting data at all, it recovers 92% of the bookmaker's edge over base
 rates. It does not beat the market, and the analysis below shows that gap is an
 information limit rather than a modelling one, which is the more useful finding.**
 
 | Task | Baseline | This model | Bookmaker |
 |---|---|---|---|
 | Three-way (H/D/A) | 45.5% | **52.3%** | 53.0% |
-| Home win vs not | 54.5% | **64.4%** | 65.3% |
-| Decided matches only | 61.0% | **70.1%** | 70.9% |
-| When >80% confident (4% of matches) |, | **86.3%** |, |
+| Home win vs not | 54.5% | **64.2%** | 65.3% |
+| Decided matches only | 61.0% | **70.0%** | 70.9% |
+| When >80% confident (4% of matches) | - | **85.6%** | - |
 
 Every accuracy figure is quoted against the baseline it has to clear, because a
 football accuracy number without one is uninterpretable. The three-way task is
@@ -35,12 +35,12 @@ matches), each predicted by a model trained only on the seasons that preceded it
 | Always predict a home win | 0.4144 | 18.68 | 45.9% | 0.361 |
 | Base rates (46/25/29) | 0.2274 | 1.0655 | 45.6% | 0.008 |
 | Dixon-Coles alone | 0.2032 | 0.9960 | 51.5% | 0.008 |
-| **This model (no betting data)** | **0.1996** | **0.9841** | **52.4%** | **0.010** |
+| **This model (no betting data)** | **0.1991** | **0.9817** | **52.3%** | **0.008** |
 | This model + market features | 0.1979 | 0.9791 | 52.7% | 0.010 |
 | **Bookmaker (Bet365, devigged)** | **0.1967** | **0.9728** | **53.0%** | **0.004** |
 
 Skill scores against the base-rate forecast: the market improves on it by 13.5%,
-the model by 12.2%. The model therefore captures **90% of the market's edge
+the model by 12.4%. The model therefore captures **92% of the market's edge
 without observing a single price.**
 
 ![Calibration](reports/calibration.png)
@@ -62,7 +62,9 @@ merely rank-ordered.
 | **FIFA squad ratings only** | **0.2011** | **52.3%** |
 | Elo + form + squad | 0.1997 | 52.3% |
 | + context features | 0.1998 | 52.3% |
-| + match events + Dixon-Coles | **0.1996** | **52.4%** |
+| + match events + Dixon-Coles | 0.1996 | 52.4% |
+| Team-embedding network (PyTorch) | 0.1994 | 52.2% |
+| **Boosting and the network averaged** | **0.1991** | **52.3%** |
 | Market probabilities only | 0.1981 | 52.7% |
 | Everything including odds | 0.1979 | 52.7% |
 
@@ -181,6 +183,14 @@ no FIFA rating used by a match is dated on or after that match.
   fall out of the diagonal instead of having to be learned against a 25% base
   rate, and over/under, both-teams-to-score and clean-sheet probabilities are
   sums over the same matrix.
+- **Team-embedding neural network** (PyTorch). Each club gets a learned vector,
+  and the network sees both vectors, their difference and their elementwise
+  product, which lets it form club-versus-club interactions that a single Elo
+  rating cannot express. It ranks slightly worse than boosting (52.2% against
+  52.3%) and calibrates twice as well (0.0047 against 0.0100). Averaging the two
+  at a fixed equal weight gives the best model here, 0.1991. The weight is fixed
+  rather than tuned, because sweeping it on the held-out seasons would be
+  choosing a hyperparameter on the test set.
 - **LightGBM** over the engineered features, with native NaN handling (two
   thirds of matches have no event feed and 15% have an incomplete lineup, so
   mean-imputing would invent a league-average team where the data says
@@ -260,11 +270,12 @@ uv run football-forecast fetch          # 313 MB, checksum-verified
 uv run football-forecast build          # parse feeds, tune Elo, build features
 uv run football-forecast dixon-coles    # precompute and cache the DC forecasts
 uv run football-forecast backtest       # walk-forward evaluation
+uv run football-forecast ensemble        # boosting blended with the neural net
 uv run football-forecast ablate         # feature-block ablation
 uv run football-forecast bet            # staking simulation
 uv run football-forecast audit          # reproduce and re-score the original
 uv run football-forecast report         # regenerate figures
-uv run pytest                   # 38 tests, including the leakage suite
+uv run pytest                   # 44 tests, including the leakage suite
 ```
 
 ## Layout
