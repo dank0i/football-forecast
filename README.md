@@ -6,10 +6,20 @@ Predicts home/draw/away probabilities for 25,979 matches across 11 European
 leagues (2008-2016), evaluated with strictly chronological walk-forward
 validation and scored with proper scoring rules rather than accuracy.
 
-**The headline result: using no betting data at all, the model reaches an RPS of
-0.1997 against the bookmaker's 0.1967 — recovering 83% of the market's edge over
-base rates from public match data alone. It does not beat the market, and this
-README explains why that is the honest answer rather than a failure.**
+**Using no betting data at all, it recovers 90% of the bookmaker's edge over base
+rates. It does not beat the market — and the analysis below shows that gap is an
+information limit rather than a modelling one, which is the more useful finding.**
+
+| Task | Baseline | pitchcast | Bookmaker |
+|---|---|---|---|
+| Three-way (H/D/A) | 45.5% | **52.3%** | 53.0% |
+| Home win vs not | 54.5% | **64.4%** | 65.3% |
+| Decided matches only | 61.0% | **70.1%** | 70.9% |
+| When >80% confident (4% of matches) | — | **86.3%** | — |
+
+Every accuracy figure is quoted against the baseline it has to clear, because a
+football accuracy number without one is uninterpretable. The three-way task is
+the honest headline; the other rows are easier problems and are labelled as such.
 
 ---
 
@@ -23,12 +33,12 @@ matches), each predicted by a model trained only on the seasons that preceded it
 | Always predict a home win | 0.4144 | 18.68 | 45.9% | 0.361 |
 | Base rates (46/25/29) | 0.2274 | 1.0655 | 45.6% | 0.008 |
 | Dixon-Coles alone | 0.2032 | 0.9960 | 51.5% | 0.008 |
-| **pitchcast (no betting data)** | **0.1997** | **0.9844** | **52.2%** | **0.011** |
-| pitchcast + market features | 0.1979 | 0.9791 | 52.6% | 0.010 |
+| **pitchcast (no betting data)** | **0.1996** | **0.9841** | **52.4%** | **0.010** |
+| pitchcast + market features | 0.1979 | 0.9791 | 52.7% | 0.010 |
 | **Bookmaker (Bet365, devigged)** | **0.1967** | **0.9728** | **53.0%** | **0.004** |
 
 Skill scores against the base-rate forecast: the market improves on it by 13.5%,
-and the model by 11.2%. The model therefore captures **83% of the market's edge
+the model by 12.2%. The model therefore captures **90% of the market's edge
 without observing a single price.**
 
 ![Calibration](reports/calibration.png)
@@ -41,15 +51,18 @@ merely rank-ordered.
 
 ![Ablation](reports/ablation.png)
 
-| Feature set | RPS | vs base rates | vs market |
-|---|---|---|---|
-| Rolling form only | 0.2065 | +8.4% | −5.0% |
-| Elo only | 0.2021 | +10.2% | −2.7% |
-| **FIFA squad ratings only** | **0.2011** | **+10.7%** | **−2.2%** |
-| Elo + form + squad | 0.1997 | +11.2% | −1.6% |
-| + match-event features | 0.1999 | +11.2% | −1.7% |
-| + Dixon-Coles forecasts | 0.1997 | +11.2% | −1.6% |
-| Market probabilities only | 0.1981 | +11.2% | −0.8% |
+| Feature set | RPS | Accuracy |
+|---|---|---|
+| Context only (head-to-head, promotion) | 0.2126 | 48.9% |
+| Rolling form only | 0.2065 | 50.3% |
+| Dixon-Coles only | 0.2032 | 51.5% |
+| Elo only | 0.2021 | 51.7% |
+| **FIFA squad ratings only** | **0.2011** | **52.3%** |
+| Elo + form + squad | 0.1997 | 52.3% |
+| + context features | 0.1998 | 52.3% |
+| + match events + Dixon-Coles | **0.1996** | **52.4%** |
+| Market probabilities only | 0.1981 | 52.7% |
+| Everything including odds | 0.1979 | 52.7% |
 
 Three findings worth stating plainly:
 
@@ -63,6 +76,43 @@ Three findings worth stating plainly:
   forecast; a gradient booster can only add noise to it. This is the clearest
   argument against the common approach of dumping bookmaker odds into a
   classifier and reporting the resulting accuracy as a modelling result.
+
+### Where the model stops improving, and why
+
+Four separate attempts to close the remaining gap to the market produced nothing:
+
+| Change | RPS | Accuracy |
+|---|---|---|
+| Elo + form + squad + Dixon-Coles | 0.1997 | 52.2% |
+| + context features (head-to-head, promotion, squad churn) | 0.1996 | 52.4% |
+| + 40-config hyperparameter search | 0.1998 | 52.2% |
+| + stacking (GBM ⊕ Dixon-Coles ⊕ Elo) | 0.2000 | 52.3% |
+| + calibration (temperature, prior shrinkage) | 0.2013 | 51.7% |
+
+That looks like saturation, but "I tried things and they failed" is not evidence.
+So the residual gap was decomposed across every cut available:
+
+| Cut | RPS gap to market |
+|---|---|
+| Early / mid / late season | +0.0036 / +0.0026 / +0.0044 |
+| Full starting XI known vs incomplete | +0.0030 / +0.0031 |
+| Promoted team involved vs not | +0.0031 / +0.0030 |
+| Market unsure / moderate / confident | +0.0036 / +0.0027 / +0.0028 |
+| Across nine leagues | +0.0005 to +0.0041 |
+
+**The gap is flat everywhere**, and that is the informative part. A modelling
+deficiency concentrates: a model blind to team news would fall apart late in the
+season and on matches with incomplete lineups. This one does not. A uniform
+~0.003 penalty across every partition is the signature of a constant information
+disadvantage — injuries, suspensions, motivation, money flow — none of which is
+in this database. In the Eredivisie the gap is +0.0005, statistically
+indistinguishable from the bookmaker.
+
+The practical conclusion is that the ceiling here is set by the sport, not the
+model. Bookmakers reach 53% on three-way football and 55.8% in the most
+predictable league in this dataset; anyone reporting substantially more is
+either dropping draws, leaking future information, or comparing against the
+wrong baseline.
 
 ### Does it make money?
 
@@ -116,6 +166,7 @@ no FIFA rating used by a match is dated on or after that match.
 | `elo` | Margin-aware Elo with home advantage and between-season regression to the mean, one rating pool per league, hyperparameters tuned only on burn-in seasons |
 | `form` | Rolling points, goals, clean sheets over 3/5/10 matches; season-to-date PPG; days of rest; fixture congestion; venue-specific form |
 | `squad` | As-of FIFA ratings of the eleven who actually started: squad mean, top-4, per-line strength using formation coordinates, goalkeeper skill, squad age |
+| `context` | Head-to-head record between the two clubs, promotion status and seasons in the league, starting-XI continuity with the previous match, Elo momentum |
 | `events` | Lagged shot, corner and possession volume parsed from the XML match feeds |
 | `market` | Devigged bookmaker probabilities, consensus across six books, and inter-book disagreement |
 
@@ -220,8 +271,8 @@ uv run pytest                   # 38 tests, including the leakage suite
 ```
 src/pitchcast/
   data/       loader (tidy frames, checksum), events (XML feeds)
-  features/   elo, form, squad, market (devigging), build (blocks)
-  models/     dixon_coles, gbm, baselines
+  features/   elo, form, squad, context, market (devigging), build (blocks)
+  models/     dixon_coles, gbm, baselines, stacking, tuning
   evaluation/ metrics (RPS, log loss, ECE), betting, leakage, replication
   backtest.py walk-forward protocol
   report.py   figures

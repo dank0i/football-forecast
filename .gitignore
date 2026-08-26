@@ -13,3 +13,6 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .ruff_cache/
+
+# The published project page is committed; it is the front door.
+!site/
