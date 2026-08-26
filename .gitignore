@@ -2,8 +2,12 @@ data/raw/*
 data/processed/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
+# Generated figures and result tables are committed: the README embeds them,
+# and a reader should be able to see the results without running the pipeline.
 reports/*
 !reports/.gitkeep
+!reports/*.png
+!reports/*.csv
 .venv/
 __pycache__/
 *.pyc

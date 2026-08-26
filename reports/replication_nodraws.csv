@@ -1,0 +1,5 @@
+metric,value,note
+reported accuracy (draws dropped),0.6897085375290173,two-class problem on 74.6% of matches
+majority-class baseline on same subset,0.6148171077748542,predict home win for every decided match
+lift over the right baseline,0.07489142975416307,what the model actually adds
+three-way majority baseline,0.45871665576042187,the 46% the 70% was implicitly compared against
