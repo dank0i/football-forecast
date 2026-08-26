@@ -207,3 +207,114 @@ def summarise_by_season(predictions: pd.DataFrame, source: str = "model") -> pd.
             }
         )
     return pd.DataFrame(rows)
+
+
+def _elo_forecast(train: pd.DataFrame, test: pd.DataFrame) -> np.ndarray:
+    """Turn the scalar Elo expectation into a three-way distribution.
+
+    Elo emits a single win expectation and has nothing to say about draws, so a
+    multinomial logit is fitted on the Elo difference to map it onto H/D/A. It
+    is fitted on the training seasons only, and is deliberately a one-feature
+    model: its job is to be a cheap, independent third opinion for the stacker,
+    not to compete with the boosted model.
+    """
+    from sklearn.linear_model import LogisticRegression
+
+    def design(frame: pd.DataFrame) -> np.ndarray:
+        diff = frame["elo_diff"].to_numpy(dtype=float).reshape(-1, 1)
+        return np.hstack([diff / 100.0, (diff / 100.0) ** 2])
+
+    x_train, y_train = design(train), train["result"].to_numpy()
+    ok = np.isfinite(x_train).all(axis=1)
+    model = LogisticRegression(max_iter=1000).fit(x_train[ok], y_train[ok])
+
+    x_test = design(test)
+    out = np.full((len(test), 3), np.nan)
+    valid = np.isfinite(x_test).all(axis=1)
+    if valid.any():
+        out[valid] = model.predict_proba(x_test[valid])
+    return out
+
+
+def run_stacked_backtest(
+    frame: pd.DataFrame,
+    blocks: tuple[str, ...] = ("elo", "form", "squad", "context"),
+    params: dict | None = None,
+    dc_cache: pd.DataFrame | None = None,
+    seed: int = 42,
+) -> pd.DataFrame:
+    """Walk-forward backtest that blends the boosted model, Dixon-Coles and Elo.
+
+    The meta-learner needs out-of-fold component predictions to train on, and
+    getting those without leaking is the whole difficulty. For each test season
+    S, an inner model is trained on everything before season S-1 and used to
+    predict S-1; the stacker is fitted on that genuinely out-of-sample season,
+    then applied to S. No component prediction the stacker learns from was made
+    by a model that had seen the match it is predicting.
+    """
+    from .models.stacking import Stacker
+
+    if dc_cache is None:
+        dc_cache = build_dixon_coles_cache(frame)
+    dc_cols = [c for c in dc_cache.columns if c != "match_index"]
+    merged = frame.merge(dc_cache, on="match_index", how="left")
+    features = select_features(frame, blocks) + dc_cols
+
+    base_params = dict(GBMForecaster.__dataclass_fields__["params"].default_factory())
+    if params:
+        base_params.update(params)
+    base_params["seed"] = seed
+    for key in ("num_leaves", "min_child_samples"):
+        if key in base_params:
+            base_params[key] = int(base_params[key])
+
+    def train_gbm(seasons: tuple[str, ...]) -> GBMForecaster:
+        subset = merged[merged["season"].isin(seasons)]
+        cutoff = int(len(subset) * 0.85)
+        return GBMForecaster(features=features, params=dict(base_params)).fit(
+            subset.iloc[:cutoff], subset.iloc[cutoff:]
+        )
+
+    outputs = []
+    for train_seasons, test_season in season_folds():
+        test = merged[merged["season"] == test_season]
+        train = merged[merged["season"].isin(train_seasons)]
+
+        # Outer model: everything before the test season.
+        outer = train_gbm(train_seasons)
+        gbm_test = outer.predict(test)
+
+        # Inner model, one season further back, to produce honest meta-features.
+        calib_season = train_seasons[-1]
+        inner_seasons = train_seasons[:-1]
+        calib = merged[merged["season"] == calib_season]
+        inner = train_gbm(inner_seasons)
+        gbm_calib = inner.predict(calib)
+
+        dc_calib = calib[["dc_home", "dc_draw", "dc_away"]].to_numpy(dtype=float)
+        dc_test = test[["dc_home", "dc_draw", "dc_away"]].to_numpy(dtype=float)
+        elo_calib = _elo_forecast(merged[merged["season"].isin(inner_seasons)], calib)
+        elo_test = _elo_forecast(train, test)
+
+        stacker = Stacker(sources=["gbm", "dc", "elo"])
+        stacker.fit({"gbm": gbm_calib, "dc": dc_calib, "elo": elo_calib}, calib["result"].to_numpy())
+        stacked = stacker.predict({"gbm": gbm_test, "dc": dc_test, "elo": elo_test})
+
+        preds = pd.DataFrame(
+            {
+                "match_index": test["match_index"].to_numpy(),
+                "season": test_season,
+                "league": test["league"].to_numpy(),
+                "date": test["date"].to_numpy(),
+                "result": test["result"].to_numpy(),
+            }
+        )
+        preds[["model_home", "model_draw", "model_away"]] = stacked
+        preds[["gbm_home", "gbm_draw", "gbm_away"]] = gbm_test
+        preds[["dc_home", "dc_draw", "dc_away"]] = dc_test
+        preds[["elo_home", "elo_draw", "elo_away"]] = elo_test
+        preds[["market_home", "market_draw", "market_away"]] = baselines.market_baseline(test)
+        preds[["prior_home", "prior_draw", "prior_away"]] = baselines.prior_baseline(train, test)
+        outputs.append(preds)
+
+    return pd.concat(outputs, ignore_index=True)

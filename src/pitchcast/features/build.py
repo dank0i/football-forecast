@@ -7,6 +7,7 @@ help. The blocks are deliberately separable:
 ``elo``      team strength from results alone
 ``form``     recent results, scoring, rest and congestion
 ``squad``    FIFA ratings of the eleven who actually started
+``context``  head-to-head history, promotion status, squad churn, Elo momentum
 ``events``   lagged shot/possession volume from the XML feeds
 ``market``   the bookmakers' own devigged probabilities
 
@@ -24,11 +25,12 @@ import pandas as pd
 from ..config import DENSE_BOOKMAKERS
 from ..data.loader import load_matches, load_player_attributes, load_players
 from . import market as market_mod
+from .context import compute_context
 from .elo import EloParams, compute_elo
 from .form import compute_form
 from .squad import compute_squad_features
 
-FEATURE_BLOCKS = ("elo", "form", "squad", "events", "market")
+FEATURE_BLOCKS = ("elo", "form", "squad", "context", "events", "market")
 
 
 def build_features(
@@ -42,7 +44,9 @@ def build_features(
         matches = load_matches()
 
     frame = matches.copy()
-    frame = frame.merge(compute_elo(matches, elo_params), on="match_index", how="left")
+    elo = compute_elo(matches, elo_params)
+    frame = frame.merge(elo, on="match_index", how="left")
+    frame = frame.merge(compute_context(matches, elo), on="match_index", how="left")
     frame = frame.merge(compute_form(matches, events), on="match_index", how="left")
     frame = frame.merge(
         compute_squad_features(matches, load_player_attributes(), load_players()),
@@ -88,7 +92,10 @@ def build_features(
 def block_columns(frame: pd.DataFrame, block: str) -> list[str]:
     """Column names belonging to one feature block."""
     if block == "elo":
-        return [c for c in frame.columns if c.startswith("elo_")]
+        # elo_momentum_* belongs to the context block, so it is excluded here to
+        # keep the ablation honest: a block must not be credited for another's
+        # columns just because they share a prefix.
+        return [c for c in frame.columns if c.startswith("elo_") and "momentum" not in c]
     if block == "form":
         return [
             c
@@ -99,6 +106,9 @@ def block_columns(frame: pd.DataFrame, block: str) -> list[str]:
         ]
     if block == "squad":
         keys = ("squad_", "line_", "gk_skill")
+        return [c for c in frame.columns if any(k in c for k in keys) and "continuity" not in c]
+    if block == "context":
+        keys = ("h2h_", "newly_promoted", "seasons_in_league", "squad_continuity", "elo_momentum")
         return [c for c in frame.columns if any(k in c for k in keys)]
     if block == "events":
         return [c for c in frame.columns if "_ev_" in c]
