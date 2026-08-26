@@ -9,8 +9,8 @@ leagues (2008-2016), evaluated with strictly chronological walk-forward
 validation and scored with proper scoring rules rather than accuracy.
 
 **Using no betting data at all, it recovers 92% of the bookmaker's edge over base
-rates. It does not beat the market, and the analysis below shows that gap is an
-information limit rather than a modelling one, which is the more useful finding.**
+rates. It does not beat the market. The analysis below shows why: the gap is an
+information limit, not a modelling one.**
 
 | Task | Baseline | This model | Bookmaker |
 |---|---|---|---|
@@ -46,8 +46,8 @@ without observing a single price.**
 ![Calibration](reports/calibration.png)
 
 The model is nearly as well calibrated as the market across the whole
-probability range, which is what makes the probabilities usable rather than
-merely rank-ordered.
+probability range. That is what makes the probabilities usable, not just
+rank-ordered.
 
 ### What each feature block is worth
 
@@ -107,9 +107,9 @@ So the residual gap was decomposed across every cut available:
 **The gap is flat everywhere**, and that is the informative part. A modelling
 deficiency concentrates: a model blind to team news would fall apart late in the
 season and on matches with incomplete lineups. This one does not. A uniform
-~0.003 penalty across every partition is the signature of a constant information
-disadvantage (injuries, suspensions, motivation, money flow), none of which is
-in this database. In the Eredivisie the gap is +0.0005, statistically
+~0.003 penalty across every partition is what a constant information
+disadvantage looks like. The missing information is injuries, suspensions,
+motivation and money flow. None of it is in this database. In the Eredivisie the gap is +0.0005, statistically
 indistinguishable from the bookmaker.
 
 The practical conclusion is that the ceiling here is set by the sport, not the
@@ -120,7 +120,7 @@ wrong baseline.
 
 ### Does it make money?
 
-No, and the simulation is included because that is the interesting part.
+No. The simulation is here because the result is worth showing.
 
 ![Betting](reports/betting.png)
 
@@ -134,12 +134,11 @@ out-of-sample forecasts only:
 | 10% | 11,326 | -1.59% | [-5.92%, +2.75%] |
 | 20% | 5,818 | -3.85% | [-11.22%, +4.06%] |
 
-For context, the no-skill return is **-2.83%**: that is what a bettor loses to
-the margin when shopping the best of six books (a single book charges -5.80%).
-The model loses 1.4%, so it does convert roughly half the margin into edge, but
-not enough to clear it, and the confidence intervals comfortably contain zero.
-Reporting a positive point estimate from a single favourable threshold would
-have been easy; the threshold sweep exists to make that impossible.
+The no-skill return is **-2.83%**. That is what a bettor loses to the margin
+when shopping the best of six books, and a single book charges -5.80%. The model
+loses 1.4%, so it converts about half the margin into edge but does not clear it.
+The confidence intervals contain zero. The full threshold sweep is shown because
+picking one favourable threshold would make almost any strategy look profitable.
 
 ---
 
@@ -148,20 +147,20 @@ have been easy; the threshold sweep exists to make that impossible.
 ### Chronological validation, not random splits
 
 Football data is a time series. A random `train_test_split` across eight seasons
-trains on 2016 matches and tests on 2010 ones, which leaks the future in three
-separate ways: the model knows how a season ended before predicting its opening
-fixtures, it has already met the specific opponents in the test match, and any
-imputation computed over the full frame carries test statistics into training.
+trains on 2016 matches and tests on 2010 ones. That leaks the future three ways.
+The model knows how a season ended before predicting its opening fixtures. It has
+already met the specific opponents in the test match. And any imputation computed
+over the full frame carries test statistics into training.
 
 Every result here uses expanding-window walk-forward validation: for each test
 season, train on all prior seasons and predict that season cold. The first two
 seasons are burn-in for Elo and rolling form and are never scored.
 
-Every feature is lagged by construction, and this is enforced by tests rather
-than assumed. `tests/test_leakage.py` rewrites the last twenty scorelines and
-asserts no earlier Elo rating moves; rewrites a match's own result and asserts
-its own pre-match form is unchanged; and checks against the real database that
-no FIFA rating used by a match is dated on or after that match.
+Every feature is lagged by construction, and tests enforce it rather than assume
+it. `tests/test_leakage.py` rewrites the last twenty scorelines and asserts no
+earlier Elo rating moves. It rewrites a match's own result and asserts that its
+pre-match form does not change. And it checks against the real database that no
+FIFA rating used by a match is dated on or after that match.
 
 ### Features
 
@@ -191,21 +190,20 @@ no FIFA rating used by a match is dated on or after that match.
   at a fixed equal weight gives the best model here, 0.1991. The weight is fixed
   rather than tuned, because sweeping it on the held-out seasons would be
   choosing a hyperparameter on the test set.
-- **LightGBM** over the engineered features, with native NaN handling (two
-  thirds of matches have no event feed and 15% have an incomplete lineup, so
-  mean-imputing would invent a league-average team where the data says
-  "unknown") and untouched class priors, since the target is a proper scoring
+- **LightGBM** over the engineered features, with native NaN handling. Two
+  thirds of matches have no event feed and 15% have an incomplete lineup.
+  Mean-imputing those would invent a league-average team where the data says
+  "unknown". Class priors are left alone, since the target is a proper scoring
   rule.
 
 ### Why not accuracy
 
-Accuracy discards everything except the argmax, so a forecast of 34/33/33 and
-one of 90/5/5 score identically when the favourite wins. The "always predict
-home" baseline in the results table makes the point: it matches the base-rate
-forecast on accuracy (45.9% vs 45.6%) while scoring a log loss of 18.7 against
-1.07. RPS is the standard in football forecasting because it also respects the
-ordering of the outcomes, penalising a predicted away win more than a predicted
-draw when the home side wins.
+Accuracy keeps only the argmax, so 34/33/33 and 90/5/5 score the same when the
+favourite wins. Look at the "always predict home" row in the results table. It
+matches the base-rate forecast on accuracy, 45.9% against 45.6%, but scores a log
+loss of 18.7 against 1.07. RPS is the standard in football forecasting because it
+also respects the ordering of outcomes. Predicting an away win when the home side
+wins costs more than predicting a draw.
 
 ---
 

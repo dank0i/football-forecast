@@ -218,12 +218,12 @@ footer{border-top:2px solid var(--ink);padding:2.2rem 0 4rem;font-family:var(--d
   </div>
 
   <div class="note">
-    <p><b>Accuracy is the wrong headline.</b> It keeps only the top guess, so 34/33/33 and 90/5/5 score the same when the favourite wins. Predicting a home win every time matches the base-rate forecast on accuracy, 45.9% against 45.6%, but scores a log loss of <b>18.7 against 1.07</b>. The primary metric here is the ranked probability score, which uses the whole distribution and respects the ordering of outcomes.</p>
+    <p><b>Accuracy is the wrong headline.</b> It keeps only the top guess, so 34/33/33 and 90/5/5 score the same when the favourite wins. Predict a home win every time and you match the base-rate forecast on accuracy, 45.9% against 45.6%. You also score a log loss of <b>18.7 against 1.07</b>. The metric here is the ranked probability score. It uses the whole distribution and respects the ordering of outcomes.</p>
   </div>
 
   <figure>
     <img src="figures/calibration.png" alt="Reliability diagram: the model's curve tracks the bookmaker's along the diagonal" loading="lazy">
-    <figcaption>When the model says 60%, it happens 60% of the time. Calibration tracks the bookmaker across the whole range, which is what makes these probabilities usable rather than merely ranked.</figcaption>
+    <figcaption>When the model says 60%, it happens 60% of the time. Calibration tracks the bookmaker across the whole range. That is what makes these probabilities usable, not just ranked.</figcaption>
   </figure>
 </section>
 
@@ -266,7 +266,7 @@ footer{border-top:2px solid var(--ink);padding:2.2rem 0 4rem;font-family:var(--d
 <section>
   <p class="tag">Two model classes</p>
   <h2>Boosting ranks better, embeddings calibrate better</h2>
-  <p>Elo compresses a club to one number and Dixon-Coles to two, so neither can express a matchup: the idea that one side is awkward for another beyond what their ratings predict. A neural network with a learned vector per club can, since it sees both vectors, their difference, and their elementwise product.</p>
+  <p>Elo compresses a club to one number and Dixon-Coles to two. Neither can express a matchup, meaning the idea that one side is awkward for another beyond what their ratings predict. A network with a learned vector per club can. It sees both vectors, their difference, and their elementwise product.</p>
 
   <div class="tbl">
   <table>
@@ -280,10 +280,10 @@ footer{border-top:2px solid var(--ink);padding:2.2rem 0 4rem;font-family:var(--d
   </table>
   </div>
 
-  <p>The network is worse at picking winners and twice as well calibrated. Averaging the two at a fixed equal weight keeps both properties and gives the best model here. The weight is fixed rather than tuned on purpose: sweeping it found an optimum between 0.4 and 0.75, but choosing from that range would be fitting a hyperparameter to the held-out seasons.</p>
+  <p>The network is worse at picking winners and twice as well calibrated. Averaging the two at equal weight keeps both properties, and that is the best model here. The weight is fixed rather than tuned on purpose. Sweeping it found an optimum between 0.4 and 0.75, but picking from that range would be fitting a hyperparameter to the held-out seasons.</p>
 
   <div class="note">
-    <p>The embeddings do <b>not</b> encode club strength. Their magnitude correlates with home win rate at r&nbsp;=&nbsp;0.01, and the largest belong to mid-table sides like Cagliari and Middlesbrough rather than to Barcelona. That is the expected result once Elo, squad ratings and Dixon-Coles are already supplying strength as features: what is left for an embedding to learn is club-specific residual structure, not a rating it has been handed three times over.</p>
+    <p>The embeddings do <b>not</b> encode club strength. Their magnitude correlates with home win rate at r&nbsp;=&nbsp;0.01, and the largest belong to mid-table sides like Cagliari and Middlesbrough rather than Barcelona. That is expected. Elo, squad ratings and Dixon-Coles already supply strength as features, so what is left for an embedding to learn is club-specific residual structure.</p>
   </div>
 </section>
 
@@ -321,7 +321,7 @@ footer{border-top:2px solid var(--ink);padding:2.2rem 0 4rem;font-family:var(--d
   </div>
 
   <div class="note">
-    <p><b>The gap is uniform across every partition.</b> That points away from a modelling weakness, which would concentrate somewhere: a model blind to team news should lose most ground late in the season and on fixtures with unknown lineups, and this one does not. A constant penalty of roughly three thousandths is what a fixed information disadvantage looks like, and the missing information is injuries, suspensions, motivation, and money flow. None of it is in this database. In the Eredivisie the gap is +0.0005.</p>
+    <p><b>The gap is uniform across every partition.</b> A modelling weakness would concentrate somewhere. A model blind to team news should lose most ground late in the season and on fixtures with unknown lineups. This one does not. A constant penalty of roughly three thousandths is what a fixed information disadvantage looks like. The missing information is injuries, suspensions, motivation and money flow, and none of it is in this database. In the Eredivisie the gap is +0.0005.</p>
   </div>
 
   <p>The ceiling is set by the sport rather than the model. Bookmakers reach about 53% on three-way football, and 55.8% in the most predictable league here. A substantially higher figure usually means draws were dropped, future information leaked in, or the baseline was wrong.</p>
@@ -349,7 +349,7 @@ footer{border-top:2px solid var(--ink);padding:2.2rem 0 4rem;font-family:var(--d
   </table>
   </div>
 
-  <p>The no-skill return is <b>-2.83%</b>, which is what a bettor loses to the margin when shopping the best of six books. Losing 1.4% means the model converts about half the margin into edge but does not clear it. The full threshold sweep is shown because picking a single favourable threshold would make almost any strategy look profitable.</p>
+  <p>The no-skill return is <b>-2.83%</b>. That is what a bettor loses to the margin when shopping the best of six books. Losing 1.4% means the model converts about half the margin into edge, but does not clear it. The full sweep is shown because picking one favourable threshold would make almost any strategy look profitable.</p>
 
   <figure>
     <img src="figures/betting.png" alt="Return on investment by minimum required edge, with bootstrap confidence band" loading="lazy">
@@ -362,7 +362,7 @@ footer{border-top:2px solid var(--ink);padding:2.2rem 0 4rem;font-family:var(--d
   <h2>Three problems in the source data</h2>
 
   <h3>40% of the event feeds are empty</h3>
-  <p>The shots-on-target column is non-null for 54.7% of matches. But 40.5% of those hold the stub <code>&lt;shoton /&gt;</code>, which parses without error and returns a count of zero. That records roughly 5,800 ordinary matches, averaging 1.54 home goals, as having no shots taken. Usable coverage is <b>32.6%</b>.</p>
+  <p>The shots-on-target column is non-null for 54.7% of matches. But 40.5% of those hold the stub <code>&lt;shoton /&gt;</code>, which parses without error and returns zero. That records roughly 5,800 ordinary matches, averaging 1.54 home goals, as having no shots taken. Usable coverage is <b>32.6%</b>.</p>
 
   <h3>The feeds carry little signal where they do exist</h3>
   <p>Measured against a control (the goal feed, which reconciles with the scoreline at r&nbsp;=&nbsp;0.96), shot difference explains goal difference at only <b>r&nbsp;=&nbsp;0.13</b>, corners at 0.07. Possession, at 0.24, is the only informative feed. This is why the event block is switchable rather than assumed useful.</p>
@@ -371,7 +371,7 @@ footer{border-top:2px solid var(--ink);padding:2.2rem 0 4rem;font-family:var(--d
   <p>An earlier version of this analysis converted odds to probabilities by overwriting the columns in place:</p>
   <pre><code>df[home] = (1/df[home]) / (1/df[home] + 1/df[draw] + 1/df[away])
 df[draw] = (1/df[draw]) / (1/df[home] + ...)   # home is a probability now</code></pre>
-  <p>By the second line the home column holds about 0.45 rather than odds of 2.20, and its reciprocal re-enters the denominator. The triples sum to <b>0.573 instead of 1.0</b>, and the away probability drops to 0.021 against a correct 0.281. That affected twenty of the thirty odds features. A regression test now covers it.</p>
+  <p>By the second line the home column holds about 0.45, not odds of 2.20, and its reciprocal re-enters the denominator. The triples sum to <b>0.573 instead of 1.0</b>. The away probability drops to 0.021 against a correct 0.281. That affected twenty of the thirty odds features. A regression test now covers it.</p>
 </section>
 
 <section>
@@ -379,8 +379,8 @@ df[draw] = (1/df[draw]) / (1/df[home] + ...)   # home is a probability now</code
   <h2>How it is evaluated</h2>
   <ul>
     <li><b>Walk-forward validation.</b> Each held-out season is predicted by a model trained only on the seasons before it. A random split across eight chronological seasons trains on 2016 matches to predict 2010 ones.</li>
-    <li><b>Leakage is checked by tests.</b> The suite rewrites the last twenty scorelines and asserts no earlier Elo rating changes, rewrites a match's own result and asserts its pre-match form is unchanged, and verifies against the real database that no player rating used by a match is dated on or after it.</li>
-    <li><b>Dixon-Coles bivariate Poisson.</b> Modelling the scoreline rather than the result means draws come from the diagonal instead of being learned against a 25% base rate, and over-under, both-teams-to-score and clean-sheet probabilities are sums over the same matrix.</li>
+    <li><b>Leakage is checked by tests.</b> The suite rewrites the last twenty scorelines and asserts no earlier Elo rating changes. It rewrites a match's own result and asserts its pre-match form does not move. And it verifies against the real database that no player rating used by a match is dated on or after it.</li>
+    <li><b>Dixon-Coles bivariate Poisson.</b> Modelling the scoreline rather than the result means draws come from the diagonal, instead of being learned against a 25% base rate. Over-under, both-teams-to-score and clean-sheet probabilities are all sums over the same matrix.</li>
     <li><b>Proper scoring throughout.</b> Ranked probability score, log loss, Brier and calibration error, with the bookmaker as the reference forecast.</li>
   </ul>
   <p>Python, LightGBM, scikit-learn and SciPy, with 38 tests, linting and CI. Every number above is reproducible from the command line.</p>
