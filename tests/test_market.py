@@ -6,8 +6,14 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pitchcast.evaluation.replication import correct_odds_normalisation, original_odds_normalisation
-from pitchcast.features.market import devig, devig_multiplicative, devig_power, devig_shin, odds_to_raw
+from football_forecast.evaluation.replication import correct_odds_normalisation, original_odds_normalisation
+from football_forecast.features.market import (
+    devig,
+    devig_multiplicative,
+    devig_power,
+    devig_shin,
+    odds_to_raw,
+)
 
 FAIR_ODDS = np.array([[3.0, 3.0, 3.0]])
 TYPICAL = np.array([[2.20, 3.40, 3.30], [1.30, 5.50, 11.0], [4.50, 3.60, 1.85]])

@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pitchcast.config import SQLITE_PATH
+from football_forecast.config import SQLITE_PATH
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -25,8 +25,8 @@ def has_database() -> bool:
 @pytest.fixture(scope="session")
 def real_matches(has_database: bool) -> pd.DataFrame:
     if not has_database:
-        pytest.skip("database.sqlite not present; run `pitchcast fetch`")
-    from pitchcast.data.loader import load_matches
+        pytest.skip("database.sqlite not present; run `football-forecast fetch`")
+    from football_forecast.data.loader import load_matches
 
     return load_matches()
 

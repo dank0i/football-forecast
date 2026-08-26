@@ -15,8 +15,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pitchcast.features.elo import compute_elo
-from pitchcast.features.form import compute_form
+from football_forecast.features.elo import compute_elo
+from football_forecast.features.form import compute_form
 
 
 def test_elo_is_unchanged_by_later_results(synthetic_matches: pd.DataFrame):
@@ -132,7 +132,7 @@ def test_form_windows_use_only_prior_matches(synthetic_matches: pd.DataFrame):
 
 def test_dixon_coles_ignores_matches_at_or_after_as_of(synthetic_matches: pd.DataFrame):
     """Changing matches on or after the as-of date must not move the fit."""
-    from pitchcast.models.dixon_coles import fit_dixon_coles
+    from football_forecast.models.dixon_coles import fit_dixon_coles
 
     as_of = synthetic_matches["date"].iloc[60]
     baseline = fit_dixon_coles(synthetic_matches, as_of=as_of)
@@ -155,8 +155,8 @@ def test_squad_ratings_predate_kickoff(real_matches: pd.DataFrame):
     Exercised against the real database because the as-of join is where a
     forward-reaching merge would hide, and the synthetic fixture has no players.
     """
-    from pitchcast.data.loader import load_player_attributes
-    from pitchcast.features.squad import _lineup_long
+    from football_forecast.data.loader import load_player_attributes
+    from football_forecast.features.squad import _lineup_long
 
     sample = real_matches.iloc[::37].copy()
     long = _lineup_long(sample)

@@ -44,7 +44,7 @@ def plot_calibration(predictions: pd.DataFrame, path) -> None:
     fig, ax = plt.subplots(figsize=(5.4, 4.6), dpi=160)
     ax.plot([0, 1], [0, 1], color=MUTED, linestyle="--", linewidth=1, label="perfect calibration")
 
-    for source, colour, label in (("model", ACCENT, "pitchcast"), ("market", WARN, "bookmaker")):
+    for source, colour, label in (("model", ACCENT, "football-forecast"), ("market", WARN, "bookmaker")):
         cols = [f"{source}_{o}" for o in ("home", "draw", "away")]
         if not all(c in predictions.columns for c in cols):
             continue
@@ -99,7 +99,7 @@ def plot_season_stability(predictions: pd.DataFrame, path) -> None:
     market = summarise_by_season(predictions, "market")
     fig, ax = plt.subplots(figsize=(6.6, 4.2), dpi=160)
     x = np.arange(len(model))
-    ax.plot(x, model["rps"], marker="o", color=ACCENT, linewidth=1.8, label="pitchcast")
+    ax.plot(x, model["rps"], marker="o", color=ACCENT, linewidth=1.8, label="football-forecast")
     ax.plot(x, market["rps"], marker="s", color=WARN, linewidth=1.8, label="bookmaker")
     ax.set_xticks(x)
     ax.set_xticklabels(model["season"], rotation=30, ha="right")

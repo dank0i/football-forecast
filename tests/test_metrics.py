@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from pitchcast.evaluation.metrics import (
+from football_forecast.evaluation.metrics import (
     brier_score,
     expected_calibration_error,
     log_loss,

@@ -7,26 +7,26 @@ setup:  ## Install dependencies
 	uv sync
 
 fetch:  ## Download and verify the database (313 MB)
-	uv run pitchcast fetch
+	uv run football-forecast fetch
 
 build:  ## Parse feeds, tune Elo, build the feature matrix
-	uv run pitchcast build
+	uv run football-forecast build
 
 backtest:  ## Walk-forward evaluation
-	uv run pitchcast dixon-coles
-	uv run pitchcast backtest
+	uv run football-forecast dixon-coles
+	uv run football-forecast backtest
 
 ablate:  ## Feature-block ablation
-	uv run pitchcast ablate
+	uv run football-forecast ablate
 
 bet:  ## Staking simulation
-	uv run pitchcast bet
+	uv run football-forecast bet
 
 audit:  ## Reproduce and re-score the original notebook
-	uv run pitchcast audit
+	uv run football-forecast audit
 
 report:  ## Regenerate figures
-	uv run pitchcast report
+	uv run football-forecast report
 
 test:  ## Run the test suite
 	uv run pytest -q

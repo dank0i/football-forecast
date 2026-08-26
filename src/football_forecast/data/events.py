@@ -18,7 +18,7 @@ treating the feeds as a measured-not-assumed feature block:
   one genuinely informative feed at r=0.24.
 
 So these are wired in as an ablatable block rather than assumed useful, and
-:mod:`pitchcast.backtest` reports what they are worth.
+:mod:`football_forecast.backtest` reports what they are worth.
 
 Everything here is aggregated to per-match, per-side counts. The rolling logic
 that turns them into lagged features lives in ``features.form``.

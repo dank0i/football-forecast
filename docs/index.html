@@ -40,14 +40,8 @@ a{color:var(--ink);text-decoration:none;background-image:linear-gradient(var(--h
 a:hover{background-size:100% 2px}
 :focus-visible{outline:2px solid var(--home);outline-offset:3px;border-radius:2px}
 
-/* ---------- masthead ---------- */
-.top{border-bottom:1px solid var(--ink);padding:1.1rem 0}
-.top .w{display:flex;justify-content:space-between;align-items:baseline;gap:1rem}
-.mark{font-family:var(--display);font-weight:700;font-size:.82rem;letter-spacing:.2em;
-  text-transform:uppercase;color:var(--ink)}
-.by{font-family:var(--display);font-weight:500;font-size:.82rem;letter-spacing:.01em;color:var(--muted)}
 
-.hero{padding:4.5rem 0 3rem}
+.hero{padding:5.5rem 0 3rem}
 .kicker{font-family:var(--display);font-size:.78rem;letter-spacing:.15em;text-transform:uppercase;
   color:var(--home);margin:0 0 1.4rem;font-weight:600}
 h1{font-family:var(--display);font-weight:800;letter-spacing:-.035em;line-height:.98;
@@ -128,9 +122,9 @@ figcaption{font-size:.88rem;color:var(--muted);margin-top:.7rem;line-height:1.55
 .note{border-left:2px solid var(--home);padding:.15rem 0 .15rem 1.15rem;margin:1.7rem 0;max-width:var(--measure)}
 .note p:last-child{margin-bottom:0}
 
-pre{font-family:var(--mono);font-size:.75rem;line-height:1.65;background:var(--panel);
-  border:1px solid var(--rule);border-radius:2px;padding:.95rem 1.1rem;overflow-x:auto;
-  margin:0 0 1rem;color:var(--ink)}
+pre{font-family:var(--mono);font-size:.76rem;line-height:1.7;background:var(--panel);
+  border:1px solid var(--rule);border-radius:2px;padding:1.05rem 1.2rem;overflow-x:auto;
+  margin:0 0 1.4rem;color:var(--ink);max-width:100%;tab-size:4}
 code{font-family:var(--mono);font-size:.86em;color:var(--ink)}
 pre code{font-size:1em}
 pre .c{color:var(--muted)}
@@ -140,7 +134,7 @@ footer{border-top:2px solid var(--ink);padding:2.2rem 0 4rem;font-family:var(--d
 
 @media (max-width:640px){
   .fx{grid-template-columns:1fr;gap:.6rem}
-  .hero{padding:3.2rem 0 2.2rem}
+  .hero{padding:3.6rem 0 2.2rem}
   section{padding:2.8rem 0}
   body{font-size:16.5px}
 }
@@ -148,16 +142,11 @@ footer{border-top:2px solid var(--ink);padding:2.2rem 0 4rem;font-family:var(--d
 </head>
 <body>
 
-<div class="top"><div class="w">
-  <span class="mark">pitchcast</span>
-  <span class="by">Aryan Malhotra</span>
-</div></div>
-
 <div class="w">
   <div class="hero">
     <p class="kicker">Machine learning · 25,979 matches</p>
     <h1>Can a model beat the betting market?</h1>
-    <p class="stand">Bookmaker odds are a forecast made with injury reports, team news, and money at stake. This model uses <b>only public match data and never sees a price</b>. This is how close it gets.</p>
+    <p class="stand">Bookmaker odds are a forecast made with injury reports, team news, and money at stake. This model uses <b>only public match data and never sees a price</b>.</p>
 
     <div class="coupon">
       <div class="coupon-head">
@@ -201,7 +190,7 @@ footer{border-top:2px solid var(--ink);padding:2.2rem 0 4rem;font-family:var(--d
     </div>
 
     <div class="cta">
-      <a class="solid" href="https://github.com/dank0i/pitchcast">Source on GitHub</a>
+      <a class="solid" href="https://github.com/dank0i/football-forecast">Source on GitHub</a>
       <a href="#ceiling">Why it stops improving</a>
       <a href="#audit">What the data was hiding</a>
     </div>
@@ -259,7 +248,7 @@ footer{border-top:2px solid var(--ink);padding:2.2rem 0 4rem;font-family:var(--d
   </table>
   </div>
 
-  <h3>Three results worth noting</h3>
+  <h3>Notes</h3>
   <ul>
     <li><b>Squad ratings are the strongest single block</b>, ahead of Elo and recent form. The starting elevens and the player ratings were both already in the dataset.</li>
     <li><b>Match-event features add nothing</b>: 0.1996 with them, 0.1997 without. The data audit below explains why.</li>
@@ -369,19 +358,19 @@ df[draw] = (1/df[draw]) / (1/df[home] + ...)   # home is a probability now</code
     <li><b>Proper scoring throughout.</b> Ranked probability score, log loss, Brier and calibration error, with the bookmaker as the reference forecast.</li>
   </ul>
   <p>Python, LightGBM, scikit-learn and SciPy, with 38 tests, linting and CI. Every number above is reproducible from the command line.</p>
-  <pre><code>uv run pitchcast fetch      <span class="c"># 313 MB, checksum-verified</span>
-uv run pitchcast build     <span class="c"># parse feeds, tune Elo, build features</span>
-uv run pitchcast backtest  <span class="c"># walk-forward evaluation</span>
-uv run pitchcast audit     <span class="c"># reproduce and re-score the earlier version</span></code></pre>
+  <pre><code>uv run football-forecast fetch      <span class="c"># 313 MB, checksum-verified</span>
+uv run football-forecast build     <span class="c"># parse feeds, tune Elo, build features</span>
+uv run football-forecast backtest  <span class="c"># walk-forward evaluation</span>
+uv run football-forecast audit     <span class="c"># reproduce and re-score the earlier version</span></code></pre>
   <div class="cta">
-    <a class="solid" href="https://github.com/dank0i/pitchcast">Read the source</a>
+    <a class="solid" href="https://github.com/dank0i/football-forecast">Read the source</a>
   </div>
 </section>
 
 </div>
 
 <footer><div class="w">
-  <div>Aryan Malhotra · <a href="https://github.com/dank0i/pitchcast">github.com/dank0i/pitchcast</a></div>
+  <div>Aryan Malhotra · <a href="https://github.com/dank0i/football-forecast">github.com/dank0i/football-forecast</a></div>
   <div>Data: <a href="https://www.kaggle.com/datasets/hugomathien/soccer">European Soccer Database</a>, 25,979 matches, 11 leagues, 2008 to 2016</div>
   <div>Earlier exploratory notebook: <a href="notebook.html">notebook.html</a></div>
 </div></footer>

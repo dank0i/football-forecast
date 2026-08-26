@@ -1,8 +1,8 @@
-# pitchcast
+# football-forecast
 
 Probabilistic football match forecasting, benchmarked against the betting market.
 
-**[Read the writeup](https://dank0i.github.io/pitchcast/)**
+**[Read the writeup](https://dank0i.github.io/football-forecast/)**
 
 Predicts home/draw/away probabilities for 25,979 matches across 11 European
 leagues (2008-2016), evaluated with strictly chronological walk-forward
@@ -12,7 +12,7 @@ validation and scored with proper scoring rules rather than accuracy.
 rates. It does not beat the market, and the analysis below shows that gap is an
 information limit rather than a modelling one, which is the more useful finding.**
 
-| Task | Baseline | pitchcast | Bookmaker |
+| Task | Baseline | This model | Bookmaker |
 |---|---|---|---|
 | Three-way (H/D/A) | 45.5% | **52.3%** | 53.0% |
 | Home win vs not | 54.5% | **64.4%** | 65.3% |
@@ -35,8 +35,8 @@ matches), each predicted by a model trained only on the seasons that preceded it
 | Always predict a home win | 0.4144 | 18.68 | 45.9% | 0.361 |
 | Base rates (46/25/29) | 0.2274 | 1.0655 | 45.6% | 0.008 |
 | Dixon-Coles alone | 0.2032 | 0.9960 | 51.5% | 0.008 |
-| **pitchcast (no betting data)** | **0.1996** | **0.9841** | **52.4%** | **0.010** |
-| pitchcast + market features | 0.1979 | 0.9791 | 52.7% | 0.010 |
+| **This model (no betting data)** | **0.1996** | **0.9841** | **52.4%** | **0.010** |
+| This model + market features | 0.1979 | 0.9791 | 52.7% | 0.010 |
 | **Bookmaker (Bet365, devigged)** | **0.1967** | **0.9728** | **53.0%** | **0.004** |
 
 Skill scores against the base-rate forecast: the market improves on it by 13.5%,
@@ -224,7 +224,7 @@ sparse ones through imputation. Only the six dense books form the consensus.
 ## Relationship to the original analysis
 
 This rebuilds a course project (CMSC320, Spring 2025) that reported "~65%
-accuracy". `pitchcast audit` reproduces that pipeline and re-scores it. Three
+accuracy". `football-forecast audit` reproduces that pipeline and re-scores it. Three
 things surfaced:
 
 **A silent bug in the odds normalisation.** The original converted odds to
@@ -256,14 +256,14 @@ asserting: the large leak was in the *evaluation framing*, not the split.
 
 ```bash
 uv sync
-uv run pitchcast fetch          # 313 MB, checksum-verified
-uv run pitchcast build          # parse feeds, tune Elo, build features
-uv run pitchcast dixon-coles    # precompute and cache the DC forecasts
-uv run pitchcast backtest       # walk-forward evaluation
-uv run pitchcast ablate         # feature-block ablation
-uv run pitchcast bet            # staking simulation
-uv run pitchcast audit          # reproduce and re-score the original
-uv run pitchcast report         # regenerate figures
+uv run football-forecast fetch          # 313 MB, checksum-verified
+uv run football-forecast build          # parse feeds, tune Elo, build features
+uv run football-forecast dixon-coles    # precompute and cache the DC forecasts
+uv run football-forecast backtest       # walk-forward evaluation
+uv run football-forecast ablate         # feature-block ablation
+uv run football-forecast bet            # staking simulation
+uv run football-forecast audit          # reproduce and re-score the original
+uv run football-forecast report         # regenerate figures
 uv run pytest                   # 38 tests, including the leakage suite
 ```
 
@@ -271,7 +271,7 @@ uv run pytest                   # 38 tests, including the leakage suite
 
 ```
 docs/         the published writeup (GitHub Pages serves this)
-src/pitchcast/
+src/football_forecast/
   data/       loader (tidy frames, checksum), events (XML feeds)
   features/   elo, form, squad, context, market (devigging), build (blocks)
   models/     dixon_coles, gbm, baselines, stacking, tuning

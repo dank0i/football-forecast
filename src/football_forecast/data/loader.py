@@ -25,7 +25,7 @@ EVENT_COLUMNS = ("goal", "shoton", "shotoff", "foulcommit", "card", "cross", "co
 def verify_database(path: Path = SQLITE_PATH) -> str:
     """Hash the SQLite file so a silently truncated download fails loudly."""
     if not path.exists():
-        raise FileNotFoundError(f"{path} not found. Run `pitchcast fetch` to download the database.")
+        raise FileNotFoundError(f"{path} not found. Run `football-forecast fetch` to download the database.")
     digest = hashlib.sha256()
     with path.open("rb") as fh:
         for chunk in iter(lambda: fh.read(1 << 20), b""):
@@ -38,7 +38,7 @@ def verify_database(path: Path = SQLITE_PATH) -> str:
 
 def _connect(path: Path = SQLITE_PATH) -> sqlite3.Connection:
     if not path.exists():
-        raise FileNotFoundError(f"{path} not found. Run `pitchcast fetch` to download the database.")
+        raise FileNotFoundError(f"{path} not found. Run `football-forecast fetch` to download the database.")
     return sqlite3.connect(path)
 
 

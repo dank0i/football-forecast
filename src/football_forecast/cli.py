@@ -206,7 +206,7 @@ def report() -> None:
 
 def _load_features() -> pd.DataFrame:
     if not FEATURES_CACHE.exists():
-        raise typer.BadParameter(f"{FEATURES_CACHE} not found. Run `pitchcast build` first.")
+        raise typer.BadParameter(f"{FEATURES_CACHE} not found. Run `football-forecast build` first.")
     return pd.read_parquet(FEATURES_CACHE)
 
 

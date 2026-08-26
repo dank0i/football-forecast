@@ -1,5 +1,5 @@
 [project]
-name = "pitchcast"
+name = "football-forecast"
 version = "0.1.0"
 description = "Probabilistic football match forecasting, benchmarked against the betting market"
 readme = "README.md"
@@ -20,7 +20,7 @@ dependencies = [
 ]
 
 [project.scripts]
-pitchcast = "pitchcast.cli:app"
+football-forecast = "football_forecast.cli:app"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

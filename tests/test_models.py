@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pitchcast.models.dixon_coles import fit_dixon_coles
+from football_forecast.models.dixon_coles import fit_dixon_coles
 
 
 def test_score_matrix_is_a_distribution(synthetic_matches: pd.DataFrame):
