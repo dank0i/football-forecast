@@ -15,4 +15,4 @@ __pycache__/
 .ruff_cache/
 
 # The published project page is committed; it is the front door.
-!site/
+!docs/

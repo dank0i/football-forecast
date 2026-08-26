@@ -6,6 +6,8 @@ consistent style that survives being viewed on a phone or printed in grey.
 
 from __future__ import annotations
 
+import shutil
+
 import matplotlib
 
 matplotlib.use("Agg")
@@ -13,7 +15,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from .config import DATA_PROCESSED, REPORTS
+from .config import DATA_PROCESSED, REPORTS, ROOT
 from .evaluation.metrics import calibration_table
 
 INK = "#1b1b1f"
@@ -132,6 +134,23 @@ def plot_betting(sweep: pd.DataFrame, no_skill_roi: float, path) -> None:
     plt.close(fig)
 
 
+PUBLISHED_FIGURES = ROOT / "docs" / "figures"
+
+
+def _publish(figure: str) -> None:
+    """Copy a generated figure into the published page.
+
+    The page under ``docs/`` is served by GitHub Pages and embeds these by
+    relative path. Copying on generation means a refreshed backtest cannot leave
+    the published charts showing older numbers than the tables beside them.
+    """
+    source = REPORTS / figure
+    if not source.exists():
+        return
+    PUBLISHED_FIGURES.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source, PUBLISHED_FIGURES / figure)
+
+
 def generate_report() -> None:
     """Write every figure that has the data behind it available."""
     REPORTS.mkdir(parents=True, exist_ok=True)
@@ -151,3 +170,6 @@ def generate_report() -> None:
     betting_path = REPORTS / "betting.csv"
     if betting_path.exists():
         plot_betting(pd.read_csv(betting_path), -2.83, REPORTS / "betting.png")
+
+    for figure in ("calibration.png", "season_stability.png", "ablation.png", "betting.png"):
+        _publish(figure)

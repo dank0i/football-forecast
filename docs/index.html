@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Can a model beat the betting market?, Aryan Malhotra</title>
+<meta name="description" content="Probabilistic forecasting of 25,979 European football matches, scored against bookmaker odds.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#FCFBF9; --panel:#fff; --ink:#15171B; --body:#3E434A; --muted:#6B7078;
+  --rule:#E4E1DA; --rule-soft:#EFEDE7;
+  --home:#9E2B4E; --draw:#A8A296; --away:#2B4E8C;
+  --home-soft:#F5E7EB; --away-soft:#E6ECF5;
+  --display:'Archivo',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --serif:'Source Serif 4',Georgia,'Times New Roman',serif;
+  --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --measure:34rem;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --paper:#131519; --panel:#1A1D22; --ink:#F0EEEA; --body:#BFC3C9; --muted:#8A9099;
+    --rule:#2A2E35; --rule-soft:#22262C;
+    --home:#D95E7E; --draw:#8E8A80; --away:#6D95D6;
+    --home-soft:#2A1A20; --away-soft:#18202E;
+  }
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation:none!important;transition:none!important}}
+body{margin:0;background:var(--paper);color:var(--body);
+  font-family:var(--serif);font-size:17px;line-height:1.62;
+  -webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+.w{max-width:60rem;margin:0 auto;padding:0 1.75rem}
+.col{max-width:var(--measure)}
+a{color:var(--ink);text-decoration:none;background-image:linear-gradient(var(--home),var(--home));
+  background-size:100% 1px;background-repeat:no-repeat;background-position:0 100%;padding-bottom:1px}
+a:hover{background-size:100% 2px}
+:focus-visible{outline:2px solid var(--home);outline-offset:3px;border-radius:2px}
+
+/* ---------- masthead ---------- */
+.top{border-bottom:1px solid var(--ink);padding:1.1rem 0}
+.top .w{display:flex;justify-content:space-between;align-items:baseline;gap:1rem}
+.mark{font-family:var(--display);font-weight:700;font-size:.82rem;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--ink)}
+.by{font-family:var(--display);font-weight:500;font-size:.82rem;letter-spacing:.01em;color:var(--muted)}
+
+.hero{padding:4.5rem 0 3rem}
+.kicker{font-family:var(--display);font-size:.78rem;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--home);margin:0 0 1.4rem;font-weight:600}
+h1{font-family:var(--display);font-weight:800;letter-spacing:-.035em;line-height:.98;
+  font-size:clamp(2.6rem,7.2vw,5rem);margin:0 0 1.5rem;color:var(--ink);max-width:16ch}
+.stand{font-size:clamp(1.05rem,2.1vw,1.22rem);line-height:1.55;color:var(--body);margin:0;max-width:44ch}
+.stand b{color:var(--ink);font-weight:600}
+
+/* ---------- signature: the coupon ---------- */
+.coupon{margin:3.2rem 0 0;border-top:2px solid var(--ink);border-bottom:2px solid var(--ink);
+  padding:1.5rem 0 1.7rem;background:none}
+.coupon-head{display:flex;justify-content:space-between;align-items:baseline;
+  font-family:var(--display);font-weight:500;font-size:.76rem;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:1.35rem;gap:1rem;flex-wrap:wrap}
+.key{display:flex;gap:.95rem;align-items:center}
+.key i{display:inline-flex;align-items:center;gap:.35rem;font-style:normal}
+.key i::before{content:"";width:.62rem;height:.62rem;border-radius:2px;display:inline-block}
+.key .kh::before{background:var(--home)} .key .kd::before{background:var(--draw)} .key .ka::before{background:var(--away)}
+
+.fx{display:grid;grid-template-columns:1fr 15.5rem;gap:1.1rem 1.6rem;align-items:center;
+  padding:.72rem 0;border-bottom:1px solid var(--rule-soft)}
+.fx:last-child{border-bottom:none}
+.fx-tie{font-family:var(--display);font-size:.94rem;font-weight:600;color:var(--ink);
+  line-height:1.35;letter-spacing:-.005em}
+.fx-score{font-family:var(--display);font-weight:700;font-size:1rem;color:var(--ink);
+  padding:0 .15rem;white-space:nowrap;letter-spacing:-.01em}
+
+.pair{display:grid;gap:.28rem}
+.row{display:grid;grid-template-columns:3.4rem 1fr;gap:.6rem;align-items:center}
+.row span.lbl{font-family:var(--display);font-weight:500;font-size:.68rem;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--muted);text-align:right}
+.bar{display:flex;height:.72rem;border-radius:2px;overflow:hidden;background:var(--rule-soft)}
+.bar i{display:block;height:100%}
+.bar i.h{background:var(--home)} .bar i.d{background:var(--draw)} .bar i.a{background:var(--away)}
+.row.mk .bar{height:.42rem;opacity:.55}
+.coupon-foot{font-family:var(--serif);font-size:1.02rem;color:var(--body);
+  margin:1.5rem 0 0;line-height:1.6;max-width:48ch}
+.coupon-foot b{color:var(--ink);font-weight:600}
+
+.cta{display:flex;gap:.7rem;flex-wrap:wrap;margin:2.6rem 0 0}
+.cta a{font-family:var(--display);font-size:.82rem;letter-spacing:.05em;text-transform:uppercase;
+  font-weight:600;padding:.66rem 1.15rem;border:1px solid var(--rule);background:none;
+  color:var(--ink);border-radius:2px}
+.cta a:hover{border-color:var(--ink)}
+.cta a.solid{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.cta a.solid:hover{opacity:.85}
+
+/* ---------- sections ---------- */
+section{padding:3.6rem 0;border-top:1px solid var(--rule)}
+.lede-sec{border-top:2px solid var(--ink)}
+h2{font-family:var(--display);font-weight:700;letter-spacing:-.025em;color:var(--ink);
+  font-size:clamp(1.55rem,3.4vw,2.1rem);line-height:1.12;margin:0 0 1.1rem;max-width:20ch}
+.tag{font-family:var(--display);font-size:.75rem;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--home);font-weight:600;margin:0 0 .9rem}
+h3{font-family:var(--display);font-weight:600;font-size:1.06rem;color:var(--ink);
+  margin:2.1rem 0 .55rem;letter-spacing:-.008em}
+p{margin:0 0 1rem;max-width:var(--measure)}
+p b,li b{color:var(--ink);font-weight:600}
+ul{margin:0 0 1rem;padding-left:1.05rem;max-width:var(--measure)}
+li{margin-bottom:.62rem}
+li::marker{color:var(--home)}
+
+/* ---------- tables ---------- */
+.tbl{overflow-x:auto;margin:1.6rem 0;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;min-width:26rem;font-family:var(--mono);font-size:.79rem}
+th,td{padding:.55rem .85rem;text-align:right;border-bottom:1px solid var(--rule-soft);white-space:nowrap}
+th:first-child,td:first-child{text-align:left;white-space:normal;font-family:var(--serif);font-size:.92rem}
+thead th{font-family:var(--display);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);font-weight:600;border-bottom:1px solid var(--ink)}
+tbody tr.hi td{background:var(--home-soft);color:var(--ink);font-weight:700}
+tbody tr.ref td{color:var(--away);font-weight:700}
+caption{caption-side:bottom;text-align:left;font-family:var(--serif);font-size:.86rem;
+  color:var(--muted);padding-top:.85rem;line-height:1.55;max-width:var(--measure)}
+
+figure{margin:2rem 0}
+figure img{width:100%;height:auto;display:block;border:1px solid var(--rule);background:#fff;border-radius:2px}
+figcaption{font-size:.88rem;color:var(--muted);margin-top:.7rem;line-height:1.55;max-width:var(--measure)}
+
+.note{border-left:2px solid var(--home);padding:.15rem 0 .15rem 1.15rem;margin:1.7rem 0;max-width:var(--measure)}
+.note p:last-child{margin-bottom:0}
+
+pre{font-family:var(--mono);font-size:.75rem;line-height:1.65;background:var(--panel);
+  border:1px solid var(--rule);border-radius:2px;padding:.95rem 1.1rem;overflow-x:auto;
+  margin:0 0 1rem;color:var(--ink)}
+code{font-family:var(--mono);font-size:.86em;color:var(--ink)}
+pre code{font-size:1em}
+pre .c{color:var(--muted)}
+
+footer{border-top:2px solid var(--ink);padding:2.2rem 0 4rem;font-family:var(--display);
+  font-weight:400;font-size:.86rem;color:var(--muted);line-height:1.95}
+
+@media (max-width:640px){
+  .fx{grid-template-columns:1fr;gap:.6rem}
+  .hero{padding:3.2rem 0 2.2rem}
+  section{padding:2.8rem 0}
+  body{font-size:16.5px}
+}
+</style>
+</head>
+<body>
+
+<div class="top"><div class="w">
+  <span class="mark">pitchcast</span>
+  <span class="by">Aryan Malhotra</span>
+</div></div>
+
+<div class="w">
+  <div class="hero">
+    <p class="kicker">Machine learning · 25,979 matches</p>
+    <h1>Can a model beat the betting market?</h1>
+    <p class="stand">Bookmaker odds are a forecast made with injury reports, team news, and money at stake. This model uses <b>only public match data and never sees a price</b>. This is how close it gets.</p>
+
+    <div class="coupon">
+      <div class="coupon-head">
+        <span>Held-out fixtures · model above, market below</span>
+        <span class="key"><i class="kh">Home</i><i class="kd">Draw</i><i class="ka">Away</i></span>
+      </div>
+
+      <div class="fx">
+        <div class="fx-tie">Real Madrid <span class="fx-score">2-0</span> Atlético Madrid</div>
+        <div class="pair">
+          <div class="row"><span class="lbl">Model</span><div class="bar"><i class="h" style="width:73%"></i><i class="d" style="width:18%"></i><i class="a" style="width:9%"></i></div></div>
+          <div class="row mk"><span class="lbl">Market</span><div class="bar"><i class="h" style="width:75%"></i><i class="d" style="width:16%"></i><i class="a" style="width:9%"></i></div></div>
+        </div>
+      </div>
+
+      <div class="fx">
+        <div class="fx-tie">Manchester United <span class="fx-score">3-0</span> Liverpool</div>
+        <div class="pair">
+          <div class="row"><span class="lbl">Model</span><div class="bar"><i class="h" style="width:55%"></i><i class="d" style="width:24%"></i><i class="a" style="width:21%"></i></div></div>
+          <div class="row mk"><span class="lbl">Market</span><div class="bar"><i class="h" style="width:54%"></i><i class="d" style="width:25%"></i><i class="a" style="width:20%"></i></div></div>
+        </div>
+      </div>
+
+      <div class="fx">
+        <div class="fx-tie">Arsenal <span class="fx-score">0-0</span> Chelsea</div>
+        <div class="pair">
+          <div class="row"><span class="lbl">Model</span><div class="bar"><i class="h" style="width:42%"></i><i class="d" style="width:30%"></i><i class="a" style="width:28%"></i></div></div>
+          <div class="row mk"><span class="lbl">Market</span><div class="bar"><i class="h" style="width:41%"></i><i class="d" style="width:30%"></i><i class="a" style="width:29%"></i></div></div>
+        </div>
+      </div>
+
+      <div class="fx">
+        <div class="fx-tie">Chelsea <span class="fx-score">3-5</span> Arsenal</div>
+        <div class="pair">
+          <div class="row"><span class="lbl">Model</span><div class="bar"><i class="h" style="width:58%"></i><i class="d" style="width:25%"></i><i class="a" style="width:17%"></i></div></div>
+          <div class="row mk"><span class="lbl">Market</span><div class="bar"><i class="h" style="width:60%"></i><i class="d" style="width:23%"></i><i class="a" style="width:17%"></i></div></div>
+        </div>
+      </div>
+
+      <p class="coupon-foot">Four fixtures from the held-out seasons, including one both forecasts got wrong. Across all 16,888, the two differ by a median of <b>5 percentage points</b>, and the model captures <b>90%</b> of the bookmaker's edge over base rates.</p>
+    </div>
+
+    <div class="cta">
+      <a class="solid" href="https://github.com/dank0i/pitchcast">Source on GitHub</a>
+      <a href="#ceiling">Why it stops improving</a>
+      <a href="#audit">What the data was hiding</a>
+    </div>
+  </div>
+</div>
+
+<div class="w">
+
+<section class="lede-sec" id="results">
+  <p class="tag">The result</p>
+  <h2>Accuracy against the baseline for each task</h2>
+  <p>A football accuracy figure means nothing on its own, so each task is shown with the naive baseline for that same task and the bookmaker as the upper reference.</p>
+
+  <div class="tbl">
+  <table>
+    <caption>Out-of-sample across six held-out seasons. Each season is predicted by a model trained only on the seasons before it.</caption>
+    <thead><tr><th>Task</th><th>Baseline</th><th>This model</th><th>Bookmaker</th></tr></thead>
+    <tbody>
+      <tr class="hi"><td>Three-way, home, draw or away</td><td>45.5%</td><td>52.3%</td><td>53.0%</td></tr>
+      <tr><td>Home win versus anything else</td><td>54.5%</td><td>64.4%</td><td>65.3%</td></tr>
+      <tr><td>Decided matches, draws removed</td><td>61.0%</td><td>70.1%</td><td>70.9%</td></tr>
+      <tr><td>Matches the model calls at over 80%, 4% of fixtures</td><td>, </td><td>86.3%</td><td>, </td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="note">
+    <p><b>Accuracy is the wrong headline.</b> It keeps only the top guess, so 34/33/33 and 90/5/5 score the same when the favourite wins. Predicting a home win every time matches the base-rate forecast on accuracy, 45.9% against 45.6%, but scores a log loss of <b>18.7 against 1.07</b>. The primary metric here is the ranked probability score, which uses the whole distribution and respects the ordering of outcomes.</p>
+  </div>
+
+  <figure>
+    <img src="figures/calibration.png" alt="Reliability diagram: the model's curve tracks the bookmaker's along the diagonal" loading="lazy">
+    <figcaption>When the model says 60%, it happens 60% of the time. Calibration tracks the bookmaker across the whole range, which is what makes these probabilities usable rather than merely ranked.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <p class="tag">Feature contributions</p>
+  <h2>Squad ratings carry the most signal</h2>
+  <p>Features are grouped into blocks that switch off independently, so each block's contribution is measured rather than assumed.</p>
+
+  <div class="tbl">
+  <table>
+    <thead><tr><th>Feature set</th><th>RPS</th><th>Accuracy</th></tr></thead>
+    <tbody>
+      <tr><td>Head-to-head and promotion context</td><td>0.2126</td><td>48.9%</td></tr>
+      <tr><td>Rolling form</td><td>0.2065</td><td>50.3%</td></tr>
+      <tr><td>Dixon-Coles goal model</td><td>0.2032</td><td>51.5%</td></tr>
+      <tr><td>Elo ratings</td><td>0.2021</td><td>51.7%</td></tr>
+      <tr class="hi"><td>FIFA ratings of the starting eleven</td><td>0.2011</td><td>52.3%</td></tr>
+      <tr><td>Everything, no betting data</td><td>0.1996</td><td>52.4%</td></tr>
+      <tr><td>Bookmaker odds, run through a model</td><td>0.1981</td><td>52.7%</td></tr>
+      <tr class="ref"><td>Bookmaker odds, used directly</td><td>0.1967</td><td>53.0%</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Three results worth noting</h3>
+  <ul>
+    <li><b>Squad ratings are the strongest single block</b>, ahead of Elo and recent form. The starting elevens and the player ratings were both already in the dataset.</li>
+    <li><b>Match-event features add nothing</b>: 0.1996 with them, 0.1997 without. The data audit below explains why.</li>
+    <li><b>Passing the bookmaker's own probabilities through a model makes them worse</b>: 0.1981 against the market's 0.1967. The closing line is already efficient, so the model only adds noise. This is worth knowing before feeding odds to a classifier and reporting the accuracy as a modelling result.</li>
+  </ul>
+
+  <figure>
+    <img src="figures/ablation.png" alt="Ranked probability score by feature set, against the bookmaker's line" loading="lazy">
+    <figcaption>Every configuration against the bookmaker's line. Nothing built from public data crosses it.</figcaption>
+  </figure>
+</section>
+
+<section id="ceiling">
+  <p class="tag">The ceiling</p>
+  <h2>Why the model stops improving</h2>
+  <p>Four separate attempts to close the remaining gap produced no improvement.</p>
+
+  <div class="tbl">
+  <table>
+    <thead><tr><th>Change</th><th>RPS</th><th>Accuracy</th></tr></thead>
+    <tbody>
+      <tr><td>Elo, form, squad and Dixon-Coles</td><td>0.1997</td><td>52.2%</td></tr>
+      <tr><td>Head-to-head, promotion, squad churn added</td><td>0.1996</td><td>52.4%</td></tr>
+      <tr><td>Forty-configuration hyperparameter search</td><td>0.1998</td><td>52.2%</td></tr>
+      <tr><td>Three models stacked through a meta-learner</td><td>0.2000</td><td>52.3%</td></tr>
+      <tr><td>Probability calibration</td><td>0.2013</td><td>51.7%</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>Four failed attempts do not prove a ceiling, so the remaining gap was broken down by context.</p>
+
+  <div class="tbl">
+  <table>
+    <thead><tr><th>Partition</th><th>Gap to the market, in RPS</th></tr></thead>
+    <tbody>
+      <tr><td>Early, middle, late season</td><td>+0.0036 · +0.0026 · +0.0044</td></tr>
+      <tr><td>Full starting eleven known, or not</td><td>+0.0030 · +0.0031</td></tr>
+      <tr><td>Promoted team involved, or not</td><td>+0.0031 · +0.0030</td></tr>
+      <tr><td>Market unsure, moderate, confident</td><td>+0.0036 · +0.0027 · +0.0028</td></tr>
+      <tr><td>Across nine leagues</td><td>+0.0005 to +0.0041</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="note">
+    <p><b>The gap is uniform across every partition.</b> That points away from a modelling weakness, which would concentrate somewhere: a model blind to team news should lose most ground late in the season and on fixtures with unknown lineups, and this one does not. A constant penalty of roughly three thousandths is what a fixed information disadvantage looks like, and the missing information is injuries, suspensions, motivation, and money flow. None of it is in this database. In the Eredivisie the gap is +0.0005.</p>
+  </div>
+
+  <p>The ceiling is set by the sport rather than the model. Bookmakers reach about 53% on three-way football, and 55.8% in the most predictable league here. A substantially higher figure usually means draws were dropped, future information leaked in, or the baseline was wrong.</p>
+
+  <figure>
+    <img src="figures/season_stability.png" alt="Out-of-sample RPS by held-out season, model against bookmaker" loading="lazy">
+    <figcaption>Six held-out seasons, so the result does not depend on a single fold.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <p class="tag">Betting returns</p>
+  <h2>The model does not make money</h2>
+  <p>Fractional Kelly staking on the best price across six bookmakers, on out-of-sample forecasts only.</p>
+
+  <div class="tbl">
+  <table>
+    <thead><tr><th>Minimum edge required</th><th>Bets</th><th>Return</th><th>95% interval</th></tr></thead>
+    <tbody>
+      <tr><td>None</td><td>21,871</td><td>-1.47%</td><td>-5.21 to +2.56</td></tr>
+      <tr><td>5%</td><td>15,833</td><td>-1.42%</td><td>-5.34 to +2.85</td></tr>
+      <tr><td>10%</td><td>11,326</td><td>-1.59%</td><td>-5.92 to +2.75</td></tr>
+      <tr><td>20%</td><td>5,818</td><td>-3.85%</td><td>-11.22 to +4.06</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>The no-skill return is <b>-2.83%</b>, which is what a bettor loses to the margin when shopping the best of six books. Losing 1.4% means the model converts about half the margin into edge but does not clear it. The full threshold sweep is shown because picking a single favourable threshold would make almost any strategy look profitable.</p>
+
+  <figure>
+    <img src="figures/betting.png" alt="Return on investment by minimum required edge, with bootstrap confidence band" loading="lazy">
+    <figcaption>Above the no-skill line at every threshold, but below zero at all of them.</figcaption>
+  </figure>
+</section>
+
+<section id="audit">
+  <p class="tag">Data quality</p>
+  <h2>Three problems in the source data</h2>
+
+  <h3>40% of the event feeds are empty</h3>
+  <p>The shots-on-target column is non-null for 54.7% of matches. But 40.5% of those hold the stub <code>&lt;shoton /&gt;</code>, which parses without error and returns a count of zero. That records roughly 5,800 ordinary matches, averaging 1.54 home goals, as having no shots taken. Usable coverage is <b>32.6%</b>.</p>
+
+  <h3>The feeds carry little signal where they do exist</h3>
+  <p>Measured against a control (the goal feed, which reconciles with the scoreline at r&nbsp;=&nbsp;0.96), shot difference explains goal difference at only <b>r&nbsp;=&nbsp;0.13</b>, corners at 0.07. Possession, at 0.24, is the only informative feed. This is why the event block is switchable rather than assumed useful.</p>
+
+  <h3>A bug in the odds conversion</h3>
+  <p>An earlier version of this analysis converted odds to probabilities by overwriting the columns in place:</p>
+  <pre><code>df[home] = (1/df[home]) / (1/df[home] + 1/df[draw] + 1/df[away])
+df[draw] = (1/df[draw]) / (1/df[home] + ...)   # home is a probability now</code></pre>
+  <p>By the second line the home column holds about 0.45 rather than odds of 2.20, and its reciprocal re-enters the denominator. The triples sum to <b>0.573 instead of 1.0</b>, and the away probability drops to 0.021 against a correct 0.281. That affected twenty of the thirty odds features. A regression test now covers it.</p>
+</section>
+
+<section>
+  <p class="tag">Method</p>
+  <h2>How it is evaluated</h2>
+  <ul>
+    <li><b>Walk-forward validation.</b> Each held-out season is predicted by a model trained only on the seasons before it. A random split across eight chronological seasons trains on 2016 matches to predict 2010 ones.</li>
+    <li><b>Leakage is checked by tests.</b> The suite rewrites the last twenty scorelines and asserts no earlier Elo rating changes, rewrites a match's own result and asserts its pre-match form is unchanged, and verifies against the real database that no player rating used by a match is dated on or after it.</li>
+    <li><b>Dixon-Coles bivariate Poisson.</b> Modelling the scoreline rather than the result means draws come from the diagonal instead of being learned against a 25% base rate, and over-under, both-teams-to-score and clean-sheet probabilities are sums over the same matrix.</li>
+    <li><b>Proper scoring throughout.</b> Ranked probability score, log loss, Brier and calibration error, with the bookmaker as the reference forecast.</li>
+  </ul>
+  <p>Python, LightGBM, scikit-learn and SciPy, with 38 tests, linting and CI. Every number above is reproducible from the command line.</p>
+  <pre><code>uv run pitchcast fetch      <span class="c"># 313 MB, checksum-verified</span>
+uv run pitchcast build     <span class="c"># parse feeds, tune Elo, build features</span>
+uv run pitchcast backtest  <span class="c"># walk-forward evaluation</span>
+uv run pitchcast audit     <span class="c"># reproduce and re-score the earlier version</span></code></pre>
+  <div class="cta">
+    <a class="solid" href="https://github.com/dank0i/pitchcast">Read the source</a>
+  </div>
+</section>
+
+</div>
+
+<footer><div class="w">
+  <div>Aryan Malhotra · <a href="https://github.com/dank0i/pitchcast">github.com/dank0i/pitchcast</a></div>
+  <div>Data: <a href="https://www.kaggle.com/datasets/hugomathien/soccer">European Soccer Database</a>, 25,979 matches, 11 leagues, 2008 to 2016</div>
+  <div>Earlier exploratory notebook: <a href="notebook.html">notebook.html</a></div>
+</div></footer>
+
+</body>
+</html>

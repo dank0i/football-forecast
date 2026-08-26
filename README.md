@@ -2,12 +2,14 @@
 
 Probabilistic football match forecasting, benchmarked against the betting market.
 
+**[Read the writeup](https://dank0i.github.io/pitchcast/)**
+
 Predicts home/draw/away probabilities for 25,979 matches across 11 European
 leagues (2008-2016), evaluated with strictly chronological walk-forward
 validation and scored with proper scoring rules rather than accuracy.
 
 **Using no betting data at all, it recovers 90% of the bookmaker's edge over base
-rates. It does not beat the market — and the analysis below shows that gap is an
+rates. It does not beat the market, and the analysis below shows that gap is an
 information limit rather than a modelling one, which is the more useful finding.**
 
 | Task | Baseline | pitchcast | Bookmaker |
@@ -15,7 +17,7 @@ information limit rather than a modelling one, which is the more useful finding.
 | Three-way (H/D/A) | 45.5% | **52.3%** | 53.0% |
 | Home win vs not | 54.5% | **64.4%** | 65.3% |
 | Decided matches only | 61.0% | **70.1%** | 70.9% |
-| When >80% confident (4% of matches) | — | **86.3%** | — |
+| When >80% confident (4% of matches) |, | **86.3%** |, |
 
 Every accuracy figure is quoted against the baseline it has to clear, because a
 football accuracy number without one is uninterpretable. The three-way task is
@@ -104,7 +106,7 @@ So the residual gap was decomposed across every cut available:
 deficiency concentrates: a model blind to team news would fall apart late in the
 season and on matches with incomplete lineups. This one does not. A uniform
 ~0.003 penalty across every partition is the signature of a constant information
-disadvantage — injuries, suspensions, motivation, money flow — none of which is
+disadvantage (injuries, suspensions, motivation, money flow), none of which is
 in this database. In the Eredivisie the gap is +0.0005, statistically
 indistinguishable from the bookmaker.
 
@@ -125,14 +127,14 @@ out-of-sample forecasts only:
 
 | Minimum edge | Bets | ROI | 95% bootstrap CI |
 |---|---|---|---|
-| 0% | 21,871 | −1.47% | [−5.21%, +2.56%] |
-| 5% | 15,833 | −1.42% | [−5.34%, +2.85%] |
-| 10% | 11,326 | −1.59% | [−5.92%, +2.75%] |
-| 20% | 5,818 | −3.85% | [−11.22%, +4.06%] |
+| 0% | 21,871 | -1.47% | [-5.21%, +2.56%] |
+| 5% | 15,833 | -1.42% | [-5.34%, +2.85%] |
+| 10% | 11,326 | -1.59% | [-5.92%, +2.75%] |
+| 20% | 5,818 | -3.85% | [-11.22%, +4.06%] |
 
-For context, the no-skill return is **−2.83%**: that is what a bettor loses to
-the margin when shopping the best of six books (a single book charges −5.80%).
-The model loses 1.4%, so it does convert roughly half the margin into edge — but
+For context, the no-skill return is **-2.83%**: that is what a bettor loses to
+the margin when shopping the best of six books (a single book charges -5.80%).
+The model loses 1.4%, so it does convert roughly half the margin into edge, but
 not enough to clear it, and the confidence intervals comfortably contain zero.
 Reporting a positive point estimate from a single favourable threshold would
 have been easy; the threshold sweep exists to make that impossible.
@@ -208,8 +210,7 @@ successfully and yields a count of zero. Counting them as genuine zeros files
 ~5,800 ordinary matches (averaging 1.54 home goals) under "no shots taken".
 Real usable coverage is 32.6%.
 
-**The event feeds are weak even where they are populated.** Against a control —
-the `goal` feed, which reconciles with the scoreline at r=0.96 — shot difference
+**The event feeds are weak even where they are populated.** Against a control, the `goal` feed, which reconciles with the scoreline at r=0.96, shot difference
 explains goal difference at only r=0.13 and corner difference at r=0.07. Only
 possession (r=0.24) carries real signal. This is why the events block is wired
 in as ablatable rather than assumed useful, and why it contributes nothing.
@@ -237,7 +238,7 @@ match_db[draw] = ... # row[home] is now a probability, not odds
 By the second line the home column holds ~0.45 rather than ~2.2, and its
 reciprocal re-enters the denominator. The resulting triples sum to **0.573 on
 average** instead of 1.0, with the away probability collapsed to 0.021 against a
-correct 0.281 — a 13× understatement across 20 of the 30 odds features feeding
+correct 0.281, a 13× understatement across 20 of the 30 odds features feeding
 every model in the notebook.
 
 **The "70% accuracy" figure needs its baseline.** Reproduced at 68.97%. But it
@@ -269,6 +270,7 @@ uv run pytest                   # 38 tests, including the leakage suite
 ## Layout
 
 ```
+docs/         the published writeup (GitHub Pages serves this)
 src/pitchcast/
   data/       loader (tidy frames, checksum), events (XML feeds)
   features/   elo, form, squad, context, market (devigging), build (blocks)

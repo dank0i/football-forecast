@@ -1,7 +1,7 @@
 """Contextual features: history between the two clubs, and squad churn.
 
 These cover ground the other blocks miss. Elo and form describe each team
-against the league as a whole; nothing so far describes *this fixture* — whether
+against the league as a whole; nothing so far describes *this fixture*, whether
 these two clubs have a lopsided history, whether one of them was in a lower
 division last year, or whether the eleven taking the field is the eleven that
 has been playing.
